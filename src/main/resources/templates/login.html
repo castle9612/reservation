@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>로그인</title>
+</head>
+<body>
+<h1>로그인</h1>
+<form th:action="@{/login}" method="post">
+  <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/> <!-- CSRF 토큰 추가 -->
+  <label for="username">아이디:</label>
+  <input type="text" id="username" name="username" required/><br/>
+
+  <label for="password">비밀번호:</label>
+  <input type="password" id="password" name="password" required/><br/>
+
+  <input type="submit" value="로그인"/>
+  <div th:if="${error}" th:text="${error}"></div> <!-- 에러 메시지 표시 -->
+</form>
+
+</body>
+</html>

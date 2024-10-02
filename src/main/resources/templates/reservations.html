@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservation List</title>
+</head>
+<body>
+<h1>Reservation List</h1>
+<ul>
+  <li th:each="reservation : ${reservations}">
+    <span th:text="${reservation.course.name}"></span> at
+    <span th:text="${reservation.reservationTime}"></span>
+    (Status: <span th:text="${reservation.status}"></span>)
+  </li>
+</ul>
+</body>
+</html>

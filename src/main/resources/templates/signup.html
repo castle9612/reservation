@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+</head>
+<body>
+<h1>Sign Up</h1>
+<form action="#" th:action="@{/signup}" method="post">
+    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/> <!-- CSRF 토큰 추가 -->
+
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" required><br>
+
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required><br>
+
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required><br>
+
+    <label for="phoneNumber">Phone Number:</label>
+    <input type="text" id="phoneNumber" name="phoneNumber" required><br>
+
+    <label for="gender">Gender:</label>
+    <select id="gender" name="gender">
+        <option value="MALE">Male</option>
+        <option value="FEMALE">Female</option>
+    </select><br>
+
+    <label for="maritalStatus">Marital Status:</label>
+    <select id="maritalStatus" name="maritalStatus">
+        <option value="TRUE">True</option> <!-- "True"를 대문자로 수정 -->
+        <option value="FALSE">False</option> <!-- "False"를 대문자로 수정 -->
+    </select><br>
+
+    <label for="birthdate">Birthdate:</label>
+    <input type="date" id="birthdate" name="birthdate" required><br>
+
+    <label for="privacyConsent">Privacy Consent:</label>
+    <input type="checkbox" id="privacyConsent" name="privacyConsent" required><br>
+
+    <button type="submit">Sign Up</button>
+</form>
+</body>
+</html>
