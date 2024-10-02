@@ -1,0 +1,45 @@
+#reservation_main{
+}
+
+.bg-body-tertiary{
+    background-color: #FCF7F3 !important;
+}
+
+#Rabonlogo{
+    display:block;
+    height: 40px;
+    object-fit: cover;
+}
+
+#Rabonletter{
+    display:block;
+    float:left;
+    height:40px;
+    object-fit:cover;
+}
+
+.contents{
+    width:1400px;
+    height:850px;
+    margin:0 auto;
+    margin-top:10px;
+    background-color: #FCF7F3
+}
+
+.contents>#Rabon{
+    float:left;
+    height:600px;
+    margin-top:125px;
+    margin-left: 20px;
+    object-fit:cover;
+}
+
+.contents>.main_contents{
+    float:left;
+    width:900px;
+    height:800px;
+    border-radius:5px;
+    margin-top:25px;
+    margin-left:30px;
+    background-color:#DBD2C9;
+}
