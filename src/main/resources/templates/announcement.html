@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Announcements</title>
+</head>
+<body>
+<h1>Announcements</h1>
+<ul>
+  <li th:each="announcement : ${announcements}">
+    <h2 th:text="${announcement.title}"></h2>
+    <p th:text="${announcement.content}"></p>
+    <small>Posted on: <span th:text="${announcement.createdAt}"></span></small>
+  </li>
+</ul>
+</body>
+</html>
