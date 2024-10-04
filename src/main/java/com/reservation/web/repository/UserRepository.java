@@ -4,7 +4,7 @@ import com.reservation.web.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository
-public interface UserRepository extends JpaRepository<UserEntity, Long> {
-    UserEntity findByUsername(String username);
+@Repository // <객체 type, pk type>
+public interface UserRepository extends JpaRepository<UserEntity, String> {
+
 }

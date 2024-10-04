@@ -1,29 +1,44 @@
 package com.reservation.web.service;
 
+import com.reservation.web.dto.UserDTO;
 import com.reservation.web.entity.UserEntity;
 import com.reservation.web.repository.UserRepository;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
+@RequiredArgsConstructor
 public class UserService {
-    private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final UserRepository userRepository; // jpa, MySQL dependency 추가
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+    public void signup(UserDTO userDTO) {
+        // 비밀번호를 암호화합니다.
+        String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
+        userDTO.setPassword(encodedPassword);
+
+        // DTO를 Entity로 변환하여 저장합니다.
+        UserEntity userEntity = UserEntity.toUserEntity(userDTO);
+        userRepository.save(userEntity);
     }
 
-    public UserEntity findByUsername(String username) {
-        return userRepository.findByUsername(username);
-    }
+    public UserDTO login(String userID, String password) {
 
-    @Transactional
-    public UserEntity save(UserEntity user) {
-        // 비밀번호 암호화
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+        Optional<UserEntity> userEntityOptional = userRepository.findById(userID);
+
+        if (userEntityOptional.isPresent()) {
+            UserEntity userEntity = userEntityOptional.get();
+
+            // 비밀번호가 일치하는지 확인
+            if (passwordEncoder.matches(password, userEntity.getPassword())) {
+                return UserDTO.toUserDTO(userEntity); // 비밀번호 일치 시 DTO로 반환
+            }
+        }
+
+        return null; // 로그인 실패 시 null 반환
     }
 }

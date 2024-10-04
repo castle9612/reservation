@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,35 +10,38 @@
 <form action="#" th:action="@{/signup}" method="post">
     <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/> <!-- CSRF 토큰 추가 -->
 
-    <label for="username">Username:</label>
-    <input type="text" id="username" name="username" required><br>
+    <label for="userID">ID:</label>
+    <input type="text" id="userID" name="userID" required><br>
 
     <label for="password">Password:</label>
     <input type="password" id="password" name="password" required><br>
 
-    <label for="name">Name:</label>
-    <input type="text" id="name" name="name" required><br>
+    <label for="userName">Name:</label>
+    <input type="text" id="userName" name="userName" required><br>
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="userEmail" required><br> <!-- Email 필드 추가 -->
 
     <label for="phoneNumber">Phone Number:</label>
-    <input type="text" id="phoneNumber" name="phoneNumber" required><br>
+    <input type="tel" id="phoneNumber" name="phoneNumber" required><br>
 
     <label for="gender">Gender:</label>
-    <select id="gender" name="gender">
+    <select id="gender" name="gender" required> <!-- 필수 값으로 설정 -->
         <option value="MALE">Male</option>
         <option value="FEMALE">Female</option>
     </select><br>
 
     <label for="maritalStatus">Marital Status:</label>
-    <select id="maritalStatus" name="maritalStatus">
-        <option value="TRUE">True</option> <!-- "True"를 대문자로 수정 -->
-        <option value="FALSE">False</option> <!-- "False"를 대문자로 수정 -->
+    <select id="maritalStatus" name="maritalStatus" required> <!-- 필수 값으로 설정 -->
+        <option value="true">Married</option>
+        <option value="false">Single</option>
     </select><br>
 
     <label for="birthdate">Birthdate:</label>
     <input type="date" id="birthdate" name="birthdate" required><br>
 
     <label for="privacyConsent">Privacy Consent:</label>
-    <input type="checkbox" id="privacyConsent" name="privacyConsent" required><br>
+    <input type="checkbox" id="privacyConsent" name="privacyConsent" required><br> <!-- 동의 필수 -->
 
     <button type="submit">Sign Up</button>
 </form>
