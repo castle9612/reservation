@@ -1,18 +1,13 @@
 import React from 'react';
-import '../css/main.css';
-import Rabon from './image/라본.jpg';
+import '../css/reserve.css';
 import Rabonlogo from './image/라본로고2.jpg';
 import Rabonletter from './image/라본로고3.jpg';
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
-import Card from 'react-bootstrap/Card';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Button from 'react-bootstrap/Button';
 
-function Main() {
+function Reserve() {
   return (
     <div id="reservation_main">
         <Navbar expand="lg" className="bg-body-tertiary">
@@ -41,12 +36,10 @@ function Main() {
           </Container>
         </Navbar>
         <div class="contents">
-            <img src={Rabon} id="Rabon" alt=""/>
-            <div class="main_contents">
-            </div>
+
         </div>
     </div>
   );
 }
 
-export default Main;
+export default Reserve;
