@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @Entity
@@ -16,5 +18,7 @@ public class AnnouncementEntity {
     private String title;
     private String content;
 
-    // 기타 필드 및 메소드
+    private String imagePath;  // 이미지 경로 필드 추가
+
+    private LocalDateTime createdAt;
 }

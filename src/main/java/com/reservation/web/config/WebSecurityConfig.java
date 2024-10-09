@@ -24,15 +24,19 @@ public class WebSecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login", "/signup", "/announcements","/reservaion","/reservations").permitAll() // 인증 없이 접근 허용
-                        .anyRequest().authenticated() // 나머지 요청은 인증 필요
+                        .requestMatchers("/", "/login", "/signup", "/announcement/list","announcement/detail", "/reservation", "/reservations", "/uploads/**").permitAll()  // 파일 업로드 경로 허용
+                        .requestMatchers("/admin/**").hasRole("ADMIN") // '/admin' 경로는 관리자만 접근 가능
+                        .anyRequest().authenticated()  // 나머지 요청은 인증 필요
                 )
                 .formLogin(form -> form
-                        .loginPage("/login") // 로그인 페이지 경로
+                        .loginPage("/login")  // 로그인 페이지 경로
                         .permitAll()
                 )
                 .logout(logout -> logout
                         .permitAll()
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedPage("/403")  // 권한 없을 때 처리할 페이지 경로 설정
                 );
 
         return http.build();

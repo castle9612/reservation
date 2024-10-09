@@ -15,11 +15,14 @@ public class ReservationEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId; // Foreign key
+    private Long userId; // Foreign key (회원의 경우)
     private Long courseId; // Foreign key
     private LocalDateTime reservationDateTime;
     private String reservationTime; // 예약 시간 필드 추가
     private String status; // 예: "PENDING", "CONFIRMED", "CANCELED"
+
+    private String name; // 비회원 이름
+    private String phoneNumber; // 비회원 전화번호
 
     // 기타 필드 및 메소드
 }

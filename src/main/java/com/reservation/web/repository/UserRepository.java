@@ -4,7 +4,10 @@ import com.reservation.web.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-@Repository // <객체 type, pk type>
-public interface UserRepository extends JpaRepository<UserEntity, String> {
+import java.util.Optional;
 
+@Repository
+public interface UserRepository extends JpaRepository<UserEntity, String> {
+    // 사용자 ID로 사용자 정보를 조회하는 메소드
+    Optional<UserEntity> findByUserID(String userID);
 }

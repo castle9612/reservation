@@ -3,8 +3,6 @@ package com.reservation.web.dto;
 import com.reservation.web.entity.UserEntity;
 import lombok.*;
 
-import java.util.Set;
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,20 +21,16 @@ public class UserDTO {
 
     public static UserDTO toUserDTO(UserEntity userEntity) {
         UserDTO userDTO = new UserDTO();
-
         userDTO.setUserID(userEntity.getUserID());
         userDTO.setPassword(userEntity.getPassword());
         userDTO.setUserName(userEntity.getUserName());
         userDTO.setUserEmail(userEntity.getUserEmail());
         userDTO.setPhoneNumber(userEntity.getPhoneNumber());
         userDTO.setRole(userEntity.getRole());
-
-        // 추가 필드들
         userDTO.setGender(userEntity.getGender());
         userDTO.setMaritalStatus(userEntity.isMaritalStatus());
         userDTO.setBirthdate(userEntity.getBirthdate());
         userDTO.setPrivacyConsent(userEntity.getPrivacyConsent());
-
         return userDTO;
     }
 }
