@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>예약 수정</title>
+</head>
+<body>
+<h1>예약 수정</h1>
+<form th:action="@{/reservations/admin/{id}/update(id=${reservation.id})}" method="post">
+  <label for="course">코스 선택:</label>
+  <select id="course" name="courseId" required>
+    <option th:each="course : ${courses}" th:value="${course.id}" th:text="${course.name}" th:selected="${course.id == reservation.courseId}"></option>
+  </select><br><br>
+
+  <label for="reservationDateTime">예약 일시:</label>
+  <input type="datetime-local" id="reservationDateTime" name="reservationDateTime" th:value="${#dates.format(reservation.reservationDateTime, 'yyyy-MM-dd\'T\'HH:mm')}" required><br><br>
+
+  <label for="status">상태:</label>
+  <select id="status" name="status" required>
+    <option value="PENDING" th:selected="${reservation.status == 'PENDING'}">PENDING</option>
+    <option value="CONFIRMED" th:selected="${reservation.status == 'CONFIRMED'}">CONFIRMED</option>
+    <option value="CANCELED" th:selected="${reservation.status == 'CANCELED'}">CANCELED</option>
+  </select><br><br>
+
+  <button type="submit">수정</button>
+</form>
+
+<form th:action="@{/reservations/admin/{id}/delete(id=${reservation.id})}" method="post">
+  <button type="submit">삭제</button>
+</form>
+
+<a href="/reservations/admin">목록으로 돌아가기</a>
+</body>
+</html>

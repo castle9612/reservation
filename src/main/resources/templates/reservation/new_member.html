@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>회원 예약</title>
+</head>
+<body>
+<h1>회원 예약</h1>
+<form action="/reservations/save" method="post">
+  <input type="hidden" name="userId" th:value="${#authentication.principal.id}"/> <!-- 현재 로그인한 사용자 ID -->
+
+  <label for="course">코스 선택:</label>
+  <select id="course" name="courseId" required>
+    <option th:each="course : ${courses}" th:value="${course.id}" th:text="${course.name}"></option>
+  </select><br><br>
+
+  <label for="reservationDateTime">예약 일시:</label>
+  <input type="datetime-local" id="reservationDateTime" name="reservationDateTime" required><br><br>
+
+  <button type="submit">예약하기</button>
+</form>
+</body>
+</html>

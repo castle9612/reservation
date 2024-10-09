@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>내 예약 목록</title>
+</head>
+<body>
+<h1>내 예약 목록</h1>
+<table>
+  <thead>
+  <tr>
+    <th>코스</th>
+    <th>예약 일시</th>
+    <th>상태</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="reservation : ${reservations}">
+    <td th:text="${reservation.course.name}"></td>
+    <td th:text="${#dates.format(reservation.reservationDateTime, 'yyyy-MM-dd HH:mm')}"></td>
+    <td th:text="${reservation.status}"></td>
+  </tr>
+  </tbody>
+</table>
+</body>
+</html>

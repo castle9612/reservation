@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>Announcement Detail</title>
+</head>
+<body>
+<h1 th:text="${announcement.title}"></h1>
+<p th:text="${announcement.content}"></p>
+<p>작성일: <span th:text="${announcement.createdAt}"></span></p>
+
+<!-- 이미지가 있을 경우 출력 -->
+<div th:if="${announcement.imagePath}">
+  <img th:src="${announcement.imagePath}" alt="Announcement Image">
+</div>
+
+<a href="/announcements">목록으로 돌아가기</a>
+</body>
+</html>

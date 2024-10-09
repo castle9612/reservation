@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title>비회원 예약 검색</title>
+</head>
+<body>
+<h1>비회원 예약 검색</h1>
+<form action="/reservations/search" method="post">
+  <label for="phoneNumber">전화번호:</label>
+  <input type="text" id="phoneNumber" name="phoneNumber" required><br><br>
+  <button type="submit">검색</button>
+</form>
+</body>
+</html>
