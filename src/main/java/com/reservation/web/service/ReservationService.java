@@ -27,7 +27,7 @@ public class ReservationService {
         return reservationRepository.findByPhoneNumber(phoneNumber);
     }
 
-    public int countConfirmedReservations(Long userId) {
+    public int countConfirmedReservations(String  userId) {
         return reservationRepository.countByUserIdAndStatus(userId, "CONFIRMED");
     }
 
@@ -55,12 +55,12 @@ public class ReservationService {
         return reservationRepository.save(reservation);
     }
 
-    public ReservationEntity findById(Long id) {
+    public ReservationEntity findById(String id) {
         return reservationRepository.findById(id).orElse(null);
     }
 
     @Transactional
-    public ReservationEntity updateReservation(Long id, ReservationEntity updatedReservation) {
+    public ReservationEntity updateReservation(String id, ReservationEntity updatedReservation) {
         ReservationEntity existingReservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 예약 ID: " + id));
 
@@ -74,12 +74,20 @@ public class ReservationService {
         return reservationRepository.save(existingReservation);
     }
 
-    public void deleteReservation(Long id) {
+    public void deleteReservation(String id) {
         reservationRepository.deleteById(id);
     }
 
     // 예약 시간 블록 처리 (추가 로직 필요 시 구현)
     public void blockReservationTime(LocalDateTime blockTime) {
         // 예: 예약 불가 시간 추가 로직
+    }
+
+    public List<ReservationEntity> findByUserId(String userId) {
+        return reservationRepository.findByUserId(userId);
+    }
+
+    public List<ReservationEntity> findAll() {
+        return reservationRepository.findAll();
     }
 }

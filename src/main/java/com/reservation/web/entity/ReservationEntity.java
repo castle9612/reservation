@@ -14,8 +14,7 @@ public class ReservationEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    private Long userId; // Foreign key (회원의 경우)
+    private String userId; // Foreign key (회원의 경우)
     private Long courseId; // Foreign key
     private LocalDateTime reservationDateTime;
     private String reservationTime; // 예약 시간 필드 추가

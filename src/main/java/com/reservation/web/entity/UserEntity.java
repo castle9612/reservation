@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 public class UserEntity {
 
     @Id // Primary key
-    private String userID;
+    private String userId;
 
     @Column(length = 100, nullable = false)
     private String password;
@@ -65,7 +65,7 @@ public class UserEntity {
     @Builder
     public static UserEntity toUserEntity(UserDTO userDTO) {
         UserEntity userEntity = new UserEntity();
-        userEntity.setUserID(userDTO.getUserID());
+        userEntity.setUserId(userDTO.getUserID());
         userEntity.setPassword(userDTO.getPassword());
         userEntity.setUserName(userDTO.getUserName());
         userEntity.setUserEmail(userDTO.getUserEmail());

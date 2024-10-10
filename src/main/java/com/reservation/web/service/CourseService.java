@@ -60,4 +60,8 @@ public class CourseService {
     public void deleteCourse(Long courseId) {
         courseRepository.deleteById(courseId);
     }
+
+    public List<CourseEntity> findAll() {
+        return courseRepository.findAll();  // JpaRepository가 기본적으로 제공
+    }
 }

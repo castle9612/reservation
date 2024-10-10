@@ -83,7 +83,7 @@ public class ReservationController {
     @GetMapping
     @PreAuthorize("hasRole('USER')")
     public String viewUserReservations(Model model) {
-        Long userId = userService.getCurrentUserId(); // 현재 로그인한 사용자의 ID 가져오기 (UserService 구현 필요)
+        String userId = userService.getCurrentUserId(); // 현재 로그인한 사용자의 ID 가져오기 (UserService 구현 필요)
         List<ReservationEntity> reservations = reservationService.findByUserId(userId);
         model.addAttribute("reservations", reservations);
         return "reservation/list_user";
@@ -123,7 +123,7 @@ public class ReservationController {
      */
     @GetMapping("/admin/{id}/edit")
     @PreAuthorize("hasRole('ADMIN')")
-    public String showEditReservationForm(@PathVariable Long id, Model model) {
+    public String showEditReservationForm(@PathVariable String id, Model model) {
         ReservationEntity reservation = reservationService.findById(id);
         if (reservation == null) {
             return "redirect:/reservations/admin?error=존재하지 않는 예약입니다.";
@@ -138,7 +138,7 @@ public class ReservationController {
      */
     @PostMapping("/admin/{id}/update")
     @PreAuthorize("hasRole('ADMIN')")
-    public String updateReservation(@PathVariable Long id, @ModelAttribute ReservationEntity reservation, RedirectAttributes redirectAttributes) {
+    public String updateReservation(@PathVariable String id, @ModelAttribute ReservationEntity reservation, RedirectAttributes redirectAttributes) {
         try {
             reservationService.updateReservation(id, reservation);
             redirectAttributes.addFlashAttribute("successMessage", "예약이 성공적으로 수정되었습니다.");
@@ -154,7 +154,7 @@ public class ReservationController {
      */
     @PostMapping("/admin/{id}/delete")
     @PreAuthorize("hasRole('ADMIN')")
-    public String deleteReservation(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String deleteReservation(@PathVariable String id, RedirectAttributes redirectAttributes) {
         reservationService.deleteReservation(id);
         redirectAttributes.addFlashAttribute("successMessage", "예약이 성공적으로 삭제되었습니다.");
         return "redirect:/reservations/admin";
@@ -165,7 +165,7 @@ public class ReservationController {
      */
     @PostMapping("/admin/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public String changeReservationStatus(@PathVariable Long id, @RequestParam("status") String status, RedirectAttributes redirectAttributes) {
+    public String changeReservationStatus(@PathVariable String id, @RequestParam("status") String status, RedirectAttributes redirectAttributes) {
         try {
             ReservationEntity reservation = reservationService.findById(id);
             if (reservation == null) {

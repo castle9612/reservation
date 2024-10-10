@@ -30,8 +30,8 @@ public class UserService {
     }
 
     // 로그인 로직
-    public UserDTO login(String userID, String password) {
-        Optional<UserEntity> userEntityOptional = userRepository.findById(userID);
+    public UserDTO login(String user_id, String password) {
+        Optional<UserEntity> userEntityOptional = userRepository.findById(user_id);
 
         if (userEntityOptional.isPresent()) {
             UserEntity userEntity = userEntityOptional.get();

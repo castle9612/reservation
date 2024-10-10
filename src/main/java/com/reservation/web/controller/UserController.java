@@ -40,11 +40,11 @@ public class UserController {
 
     // 로그인 처리
     @PostMapping("/login")
-    public String login(@RequestParam String userID,
+    public String login(@RequestParam String user_id,
                         @RequestParam String password,
                         HttpSession session,
                         Model model) {
-        UserDTO loginUser = userService.login(userID, password);
+        UserDTO loginUser = userService.login(user_id, password);
         if (loginUser != null) {
             session.setAttribute("loginUser", loginUser);
             return "redirect:/";  // 로그인 성공 후 메인 페이지로 리다이렉트
