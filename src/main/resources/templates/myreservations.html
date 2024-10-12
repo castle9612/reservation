@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>내 예약</title>
+</head>
+<body>
+<h1>내 예약 목록</h1>
+
+<table border="1">
+  <tr>
+    <th>예약 ID</th>
+    <th>코스 이름</th>
+    <th>예약 일시</th>
+    <th>상태</th>
+    <th>수정</th>
+  </tr>
+  <tr th:each="reservation : ${reservations}">
+    <td th:text="${reservation.id}"></td>
+    <td th:text="${reservation.course.name}"></td>
+    <td th:text="${#dates.format(reservation.reservationDateTime, 'yyyy-MM-dd HH:mm')}"></td>
+    <td th:text="${reservation.status}"></td>
+    <td>
+      <form action="/mypage/reservations/update" method="post">
+        <input type="hidden" name="reservationId" th:value="${reservation.id}">
+        <label for="newDateTime">새 예약 일시:</label>
+        <input type="datetime-local" id="newDateTime" name="newDateTime" required>
+        <button type="submit">수정</button>
+      </form>
+    </td>
+  </tr>
+</table>
+
+<a href="/mypage">마이 페이지로 돌아가기</a>
+
+</body>
+</html>

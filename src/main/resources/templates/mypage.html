@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Page</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header>
+  <h1>My Page</h1>
+</header>
+<section>
+  <h2>My Information</h2>
+  <form action="/mypage/update" method="POST">
+    <label for="userName">Name:</label>
+    <input type="text" id="userName" name="userName" value="{{userName}}" required>
+
+    <label for="userEmail">Email:</label>
+    <input type="email" id="userEmail" name="userEmail" value="{{userEmail}}" required>
+
+    <label for="phoneNumber">Phone Number:</label>
+    <input type="text" id="phoneNumber" name="phoneNumber" value="{{phoneNumber}}" required>
+
+    <label for="password">Change Password:</label>
+    <input type="password" id="password" name="password">
+
+    <button type="submit">Update Information</button>
+  </form>
+
+  <h2>My Reservations</h2>
+  <table>
+    <thead>
+    <tr>
+      <th>Reservation ID</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Status</th>
+      <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- 예약 데이터가 여기에 반복문을 통해 추가됩니다 -->
+    </tbody>
+  </table>
+</section>
+</body>
+</html>

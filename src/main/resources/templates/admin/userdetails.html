@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>사용자 상세 정보</title>
+</head>
+<body>
+<h1>사용자 상세 정보</h1>
+
+<p><strong>이름:</strong> <span th:text="${userDetails.name}"></span></p>
+<p><strong>전화번호:</strong> <span th:text="${userDetails.phoneNumber}"></span></p>
+<p><strong>이메일:</strong> <span th:text="${userDetails.email}"></span></p>
+<p><strong>남은 패키지 횟수:</strong> <span th:text="${userDetails.packageCount}"></span></p>
+<p><strong>관리자 메모:</strong></p>
+<form action="/mypage/admin/memo" method="post">
+    <input type="hidden" name="userId" th:value="${userDetails.userId}">
+    <textarea name="memo" rows="4" cols="50" th:text="${userDetails.memo}"></textarea>
+    <br>
+    <button type="submit">메모 수정</button>
+</form>
+
+<h2>예약 내역</h2>
+<table border="1">
+    <tr>
+        <th>예약 ID</th>
+        <th>코스 이름</th>
+        <th>예약 일시</th>
+        <th>상태</th>
+    </tr>
+    <tr th:each="reservation : ${userDetails.reservations}">
+        <td th:text="${reservation.id}"></td>
+        <td th:text="${reservation.course.name}"></td>
+        <td th:text="${#dates.format(reservation.reservationDateTime, 'yyyy-MM-dd HH:mm')}"></td>
+        <td th:text="${reservation.status}"></td>
+    </tr>
+</table>
+
+<a href="/admin">관리자 대시보드로 돌아가기</a>
+
+</body>
+</html>
