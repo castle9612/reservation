@@ -1,49 +1,50 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up</title>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<h1>Sign Up</h1>
-<form action="#" th:action="@{/signup}" method="post">
-    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/> <!-- CSRF 토큰 추가 -->
+<header>
+    <h1>Sign Up</h1>
+</header>
+<section>
+    <form action="/signup" method="POST">
+        <label for="userId">User ID:</label>
+        <input type="text" id="userId" name="userId" required>
 
-    <label for="userID">ID:</label>
-    <input type="text" id="userID" name="userID" required><br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
 
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required><br>
+        <label for="userName">Name:</label>
+        <input type="text" id="userName" name="userName" required>
 
-    <label for="userName">Name:</label>
-    <input type="text" id="userName" name="userName" required><br>
+        <label for="userEmail">Email:</label>
+        <input type="email" id="userEmail" name="userEmail" required>
 
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="userEmail" required><br> <!-- Email 필드 추가 -->
+        <label for="phoneNumber">Phone Number:</label>
+        <input type="text" id="phoneNumber" name="phoneNumber" required>
 
-    <label for="phoneNumber">Phone Number:</label>
-    <input type="tel" id="phoneNumber" name="phoneNumber" required><br>
+        <label for="gender">Gender:</label>
+        <select id="gender" name="gender">
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+        </select>
 
-    <label for="gender">Gender:</label>
-    <select id="gender" name="gender" required> <!-- 필수 값으로 설정 -->
-        <option value="MALE">Male</option>
-        <option value="FEMALE">Female</option>
-    </select><br>
+        <label for="maritalStatus">Marital Status:</label>
+        <input type="checkbox" id="maritalStatus" name="maritalStatus">
 
-    <label for="maritalStatus">Marital Status:</label>
-    <select id="maritalStatus" name="maritalStatus" required> <!-- 필수 값으로 설정 -->
-        <option value="true">Married</option>
-        <option value="false">Single</option>
-    </select><br>
+        <label for="birthdate">Birthdate:</label>
+        <input type="date" id="birthdate" name="birthdate">
 
-    <label for="birthdate">Birthdate:</label>
-    <input type="date" id="birthdate" name="birthdate" required><br>
+        <label for="privacyConsent">I agree to the privacy policy</label>
+        <input type="checkbox" id="privacyConsent" name="privacyConsent" required>
 
-    <label for="privacyConsent">Privacy Consent:</label>
-    <input type="checkbox" id="privacyConsent" name="privacyConsent" required><br> <!-- 동의 필수 -->
-
-    <button type="submit">Sign Up</button>
-</form>
+        <button type="submit">Sign Up</button>
+    </form>
+</section>
 </body>
 </html>

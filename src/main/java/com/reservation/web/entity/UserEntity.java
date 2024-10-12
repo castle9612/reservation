@@ -23,10 +23,10 @@ public class UserEntity {
     private String password;
 
     @Column(length = 100, nullable = false)
-    private String userName;
+    private String name;  // userName에서 name으로 변경
 
     @Column(length = 100, nullable = false)
-    private String userEmail;
+    private String email; // userEmail에서 email으로 변경
 
     @Column(length = 20, nullable = false)
     private String phoneNumber;
@@ -52,6 +52,12 @@ public class UserEntity {
     @Column(name = "privacy_consent", nullable = false)
     private Boolean privacyConsent;
 
+    @Column(length = 1000)
+    private String memo;  // 관리자 메모 필드 추가
+
+    @Column(name = "package_count", nullable = false)
+    private int packageCount;  // 패키지 남은 횟수 필드 추가
+
     @PrePersist
     protected void onCreate() {
         this.createdDate = LocalDateTime.now();
@@ -67,14 +73,16 @@ public class UserEntity {
         UserEntity userEntity = new UserEntity();
         userEntity.setUserId(userDTO.getUserID());
         userEntity.setPassword(userDTO.getPassword());
-        userEntity.setUserName(userDTO.getUserName());
-        userEntity.setUserEmail(userDTO.getUserEmail());
+        userEntity.setName(userDTO.getUserName());
+        userEntity.setEmail(userDTO.getUserEmail());
         userEntity.setPhoneNumber(userDTO.getPhoneNumber());
         userEntity.setRole(userDTO.getRole() != null ? userDTO.getRole() : "user");
         userEntity.setGender(userDTO.getGender());
         userEntity.setMaritalStatus(userDTO.isMaritalStatus());
         userEntity.setBirthdate(userDTO.getBirthdate());
         userEntity.setPrivacyConsent(userDTO.getPrivacyConsent());
+        userEntity.setPackageCount(userDTO.getPackageCount());
+        userEntity.setMemo(userDTO.getMemo());
         return userEntity;
     }
 }

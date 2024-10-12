@@ -24,7 +24,7 @@ public class WebSecurityConfig {
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login", "/signup", "/announcement/list","announcement/detail", "/reservation", "/reservations", "/uploads/**").permitAll()  // 파일 업로드 경로 허용
+                        .requestMatchers("/", "index","/login", "/signup", "/announcement/list","announcement/detail", "/reservation", "/reservations", "/uploads/**").permitAll()  // 파일 업로드 경로 허용
                         .requestMatchers("/admin/**").hasRole("ADMIN") // '/admin' 경로는 관리자만 접근 가능
                         .anyRequest().authenticated()  // 나머지 요청은 인증 필요
                 )

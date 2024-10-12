@@ -33,7 +33,7 @@ public class AnnouncementController {
         return "announcement/detail";
     }
 
-    @GetMapping("/new")
+    @GetMapping("/announcement/new")
     public String createAnnouncementForm(Model model) {
         model.addAttribute("announcement", new AnnouncementDTO());
         return "announcement/new";

@@ -1,15 +1,33 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>index</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservation Main Page</title>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<h1>index page</h1>
-    <a href = "/signup">회원가입</a>
-    <a href = "/login">로그인</a>
-    <a href = "/reservation">예약</a>
-    <a href = "/reservations">예약1</a>
-    <a href = "/announcements">공지사항</a>
+<header>
+    <h1>Welcome to the Reservation System</h1>
+    <nav>
+        <ul>
+            <li><a href="/announcements">Announcements</a></li>
+            <li><a href="/login">Login</a></li>
+            <li><a href="/signup">Sign Up</a></li>
+            <li><a href="/mypage">My Page</a></li>
+            <li><a href="/contact">Contact Us</a></li>
+        </ul>
+    </nav>
+</header>
+<section>
+    <h2>Staff Profiles</h2>
+    <div id="staff-container">
+        <!-- 관리자 페이지에서 등록된 스태프들의 프로필이 여기에 표시됩니다 -->
+    </div>
+</section>
+<footer>
+    <p>Contact us at info@reservation.com | 123-456-7890</p>
+    <p>123 Main Street, City, Country</p>
+</footer>
 </body>
 </html>

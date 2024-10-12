@@ -1,25 +1,26 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko">
 <head>
-  <title>로그인</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<h1>로그인</h1>
-<form th:action="@{/login}" method="post">
-  <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/> <!-- CSRF 토큰 추가 -->
+<header>
+  <h1>Login</h1>
+</header>
+<section>
+  <form action="/login" method="POST">
+    <label for="user_id">User ID:</label>
+    <input type="text" id="user_id" name="user_id" required>
 
-  <label for="userID">User ID:</label>
-  <input type="text" id="userID" name="userID" required>
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required>
 
-  <label for="password">Password:</label>
-  <input type="password" id="password" name="password" required>
-
-  <button type="submit">Login</button>
-</form>
-
-<!-- 로그인 오류 메시지를 표시하는 부분 -->
-<div th:if="${loginError}" style="color:red;">
-  <p th:text="${loginError}"></p>
-</div>
+    <button type="submit">Login</button>
+  </form>
+  <p>Don't have an account? <a href="/signup">Sign up here</a></p>
+</section>
 </body>
 </html>
