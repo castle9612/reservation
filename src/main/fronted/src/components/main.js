@@ -7,12 +7,18 @@ import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import NavDropdown from 'react-bootstrap/NavDropdown';
-import Card from 'react-bootstrap/Card';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Button from 'react-bootstrap/Button';
+import { BsCalendarFill, BsFillBellFill, BsArrowRightShort } from "react-icons/bs";
 
 function Main() {
+
+    const GoNotice=()=>{
+        window.location.href='/notice'
+    }
+
+    const GoReserve=()=>{
+        window.location.href='/reserve'
+    }
+
   return (
     <div id="reservation_main">
         <Navbar expand="lg" className="bg-body-tertiary">
@@ -40,9 +46,24 @@ function Main() {
             </Navbar.Collapse>
           </Container>
         </Navbar>
-        <div class="contents">
+        <div className="contents">
             <img src={Rabon} id="Rabon" alt=""/>
-            <div class="main_contents">
+            <div className="main_contents">
+                <div className="goToNotice" onClick={GoNotice}>
+                    <label>공지사항</label><BsArrowRightShort size={50} color="#231C14"/><br/>
+                    <BsFillBellFill id="bsbell" size={150} color="#231C14"/>
+                </div>
+                <div className="goToReserve" onClick={GoReserve}>
+                    <label>예약</label><BsArrowRightShort size={50} color="#231C14"/><br/>
+                    <BsCalendarFill id="bscal" size={150} color="#231C14"/>
+                </div>
+                <div className="wayTocome">
+                    <label>찾아오는 길</label><br/>
+                    <div className="picture">
+                    </div>
+                    <div className="info">
+                    </div>
+                </div>
             </div>
         </div>
     </div>

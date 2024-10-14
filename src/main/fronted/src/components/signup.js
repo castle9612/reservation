@@ -29,8 +29,28 @@ function Signup() {
                         name="userId"
                         placeholder="전화번호"
                     /><br/>
-                    <input type="checkbox" className="CheckBox"/>
-                    <span className="checkBoxSpan">개인정보 동의</span><br/>
+                    <div className="Gender">
+                        <label className="gender">성별 :</label>
+                        <input
+                            type="radio"
+                            name="gender"
+                            value="male"
+                            id="male"
+                        />
+                        <label htmlFor="male">남성</label>
+
+                        <input
+                            type="radio"
+                            name="gender"
+                            value="female"
+                            id="female"
+                        />
+                        <label htmlFor="female">여성</label>
+                    </div><br/>
+                    <div className="CheckBox">
+                        <input type="checkbox" className="checkBox"/>
+                        <span className="checkBoxSpan">개인정보 동의</span>
+                    </div><br/>
                     <button type="submit" className="signup_btn">
                         <span>회원가입</span>
                     </button>
