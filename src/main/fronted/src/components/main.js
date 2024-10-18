@@ -10,7 +10,6 @@ import NavDropdown from 'react-bootstrap/NavDropdown';
 import { BsCalendarFill, BsFillBellFill, BsArrowRightShort } from "react-icons/bs";
 
 function Main() {
-
     const GoNotice=()=>{
         window.location.href='/notice'
     }
@@ -32,7 +31,7 @@ function Main() {
               <Nav className="me-auto">
                 <Nav.Link href="/notice">공지사항</Nav.Link>
                 <NavDropdown title="회원정보" id="basic-nav-dropdown">
-                  <NavDropdown.Item href="#action/3.1">정보수정</NavDropdown.Item>
+                  <NavDropdown.Item href="/userPage">마이페이지</NavDropdown.Item>
                   <NavDropdown.Item href="/reserve">
                     예약정보
                   </NavDropdown.Item>
@@ -46,7 +45,7 @@ function Main() {
             </Navbar.Collapse>
           </Container>
         </Navbar>
-        <div className="contents">
+        <div className="contents_main">
             <img src={Rabon} id="Rabon" alt=""/>
             <div className="main_contents">
                 <div className="goToNotice" onClick={GoNotice}>
@@ -60,8 +59,11 @@ function Main() {
                 <div className="wayTocome">
                     <label>찾아오는 길</label><br/>
                     <div className="picture">
+                        대략적인 사진
                     </div>
                     <div className="info">
+                        주소
+                        전화번호
                     </div>
                 </div>
             </div>

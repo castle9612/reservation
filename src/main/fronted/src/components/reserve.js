@@ -21,7 +21,7 @@ function Reserve() {
               <Nav className="me-auto">
                 <Nav.Link href="/notice">공지사항</Nav.Link>
                 <NavDropdown title="회원정보" id="basic-nav-dropdown">
-                  <NavDropdown.Item href="#action/3.1">정보수정</NavDropdown.Item>
+                  <NavDropdown.Item href="/userPage">마이페이지</NavDropdown.Item>
                   <NavDropdown.Item href="/reserve">
                     예약정보
                   </NavDropdown.Item>

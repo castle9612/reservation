@@ -18,30 +18,32 @@
     object-fit:cover;
 }
 
-.contents{
+.contents_main{
     width:1400px;
     height:850px;
     margin:0 auto;
     margin-top:10px;
-    background-color: #FCF7F3;
+    background-color: white; /* #FCF7F3 */
 }
 
-.contents>#Rabon{
+.contents_main>#Rabon{
     float:left;
     height:600px;
     margin-top:125px;
     margin-left: 20px;
     object-fit:cover;
+    border-radius:5px;
+    border: 1px solid #DBD2C9;
 }
 
-.contents>.main_contents{
+.contents_main>.main_contents{
     float:left;
     width:900px;
     height:800px;
     border-radius:5px;
     margin-top:25px;
     margin-left:30px;
-    background-color:#DBD2C9;
+    background-color:unset; /* #DBD2C9 */
 }
 
 .main_contents>.goToNotice{
@@ -52,6 +54,7 @@
     margin: 0 auto;
     margin-top:40px;
     margin-left:45px;
+    border: 1px solid #DBD2C9;
     border-radius:15px;
     cursor: pointer;
     font-weight: bold;
@@ -78,6 +81,7 @@
     margin-top:40px;
     margin-left:20px;
     border-radius:15px;
+    border: 1px solid #DBD2C9;
     cursor: pointer;
     font-weight: bold;
     color: #231C14;
@@ -103,6 +107,7 @@
     margin-top:20px;
     margin-left:45px;
     border-radius:15px;
+    border: 1px solid #DBD2C9;
 }
 
 .wayTocome>label{
