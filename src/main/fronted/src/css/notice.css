@@ -18,10 +18,39 @@
     object-fit:cover;
 }
 
-.contents{
+.contents_notice{
     width:1400px;
     height:850px;
     margin:0 auto;
     margin-top:10px;
-    background-color: #FCF7F3
+}
+
+.contents_notice>h3{
+    width: 1200px;
+    height: 50px;
+    font-weight:bold;
+    margin-top:30px;
+    margin-left:100px;
+}
+
+.contents_notice>table{
+    width:1200px;
+    margin:0 auto;
+    margin-top:20px;
+    background-color: white;
+    border-top:3px solid black;
+    border-bottom: 3px solid black;
+    text-align: center;
+}
+
+.contents_notice>table>thead>tr>th:first-child{
+    width:10%;
+}
+
+.contents_notice>table>thead>tr>th:last-child{
+    width:25%;
+}
+
+.contents_notice>table>tbody>.border{
+    height:50px;
 }

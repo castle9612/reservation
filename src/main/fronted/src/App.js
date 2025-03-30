@@ -6,6 +6,8 @@ import Login from './components/login.js';
 import Signup from './components/signup.js';
 import Main from './components/main.js';
 import Notice from './components/notice.js';
+import Noticeview from './components/noticeview.js';
+import Noticewrite from './components/noticewrite.js';
 import Reserve from './components/reserve.js';
 import UserPage from './components/userPage.js';
 
@@ -22,10 +24,12 @@ class App extends Component{
       <div id='App'>
         <BrowserRouter>
             <Routes>
-              <Route path='/' element={<Main/>}/>
+              <Route path='/' element={<Login/>}/>
               <Route path='/signup' element={<Signup/>}/>
-              <Route path='/login' element={<Login/>}/>
+              <Route path='/main' element={<Main/>}/>
               <Route path='/notice' element={<Notice/>}/>
+              <Route path='/noticeview' element={<Noticeview/>}/>
+              <Route path='/noticewrite' element={<Noticewrite/>}/>
               <Route path='/reserve' element={<Reserve/>}/>
               <Route path='/userPage' element={<UserPage/>}/>
             </Routes>
