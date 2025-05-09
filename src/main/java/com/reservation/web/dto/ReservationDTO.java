@@ -8,9 +8,10 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class ReservationDTO {
-    private String userId; // 회원일 경우
-    private Long courseId;
+    private String id;
+    private String userId;
+    private String courseId;
     private LocalDateTime reservationDateTime;
-    private String name; // 비회원일 경우
-    private String phoneNumber; // 비회원일 경우
+    private String name;
+    private String phoneNumber;
 }

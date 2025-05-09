@@ -50,7 +50,7 @@ public class UserMyPageService {
         return reservationRepository.findByUserId(user.getUserId());
     }
 
-    public void updateReservation(Long reservationId, String newDateTime) {
+    public void updateReservation(String reservationId, String newDateTime) {
         ReservationEntity reservation = reservationRepository.findById(reservationId).orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다."));
         reservation.setReservationDateTime(LocalDateTime.parse(newDateTime));
         reservationRepository.save(reservation);

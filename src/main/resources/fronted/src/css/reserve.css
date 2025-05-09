@@ -1,0 +1,27 @@
+#reservation_main{
+}
+
+.bg-body-tertiary{
+    background-color: #FCF7F3 !important;
+}
+
+#Rabonlogo{
+    display:block;
+    height: 40px;
+    object-fit: cover;
+}
+
+#Rabonletter{
+    display:block;
+    float:left;
+    height:40px;
+    object-fit:cover;
+}
+
+.contents{
+    width:1400px;
+    height:850px;
+    margin:0 auto;
+    margin-top:10px;
+    background-color: #FCF7F3
+}

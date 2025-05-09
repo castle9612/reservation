@@ -28,7 +28,7 @@ public class CourseController {
 
     // 코스 상세 조회
     @GetMapping("/{courseId}")
-    public String getCourseById(@PathVariable Long courseId, Model model) {
+    public String getCourseById(@PathVariable String courseId, Model model) {
         Optional<CourseEntity> course = courseService.findCourseById(courseId);
         if (course.isPresent()) {
             model.addAttribute("course", course.get());
@@ -53,7 +53,7 @@ public class CourseController {
 
     // 코스 수정 페이지로 이동
     @GetMapping("/edit/{courseId}")
-    public String editCourseForm(@PathVariable Long courseId, Model model) {
+    public String editCourseForm(@PathVariable String courseId, Model model) {
         Optional<CourseEntity> course = courseService.findCourseById(courseId);
         if (course.isPresent()) {
             CourseDTO courseDTO = new CourseDTO();
@@ -72,14 +72,14 @@ public class CourseController {
 
     // 코스 수정 처리
     @PostMapping("/edit/{courseId}")
-    public String updateCourse(@PathVariable Long courseId, @ModelAttribute CourseDTO courseDTO) {
+    public String updateCourse(@PathVariable String courseId, @ModelAttribute CourseDTO courseDTO) {
         courseService.updateCourse(courseId, courseDTO);
         return "redirect:/courses"; // 수정 후 코스 목록으로 리다이렉트
     }
 
     // 코스 삭제 처리
     @PostMapping("/delete/{courseId}")
-    public String deleteCourse(@PathVariable Long courseId) {
+    public String deleteCourse(@PathVariable String courseId) {
         courseService.deleteCourse(courseId);
         return "redirect:/courses"; // 삭제 후 코스 목록으로 리다이렉트
     }

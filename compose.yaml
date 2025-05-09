@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   app:
     build: .
@@ -6,7 +8,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://reservation_db:3306/reservation?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/reservation?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: reservation2580!
     depends_on:
@@ -16,12 +18,13 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: reservation_db
+    container_name: mysql
     environment:
-      MYSQL_ROOT_PASSWORD: "reservation2580!"
-      MYSQL_DATABASE: "reservation"
-      MYSQL_USER: "msy"
-      MYSQL_PASSWORD: "reservation2580!"
+      TZ: Asia/Seoul
+      MYSQL_ROOT_PASSWORD: reservation2580!
+      MYSQL_DATABASE: reservation
+      MYSQL_USER: msy
+      MYSQL_PASSWORD: reservation2580!
     ports:
       - "3306:3306"
     volumes:

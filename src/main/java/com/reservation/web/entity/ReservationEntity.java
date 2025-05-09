@@ -6,27 +6,23 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
+@Entity
 @Getter
 @Setter
-@Entity
 @Table(name = "reservations")
 public class ReservationEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    private String userId; // Foreign key (회원의 경우)
-    private Long courseId; // Foreign key
+    private String userId;
 
-    @ManyToOne
-    @JoinColumn(name = "courseId", insertable = false, updatable = false)
-    private CourseEntity course;
+    private String courseId;
 
     private LocalDateTime reservationDateTime;
-    private String status; // 예: "PENDING", "CONFIRMED", "CANCELED"
 
-    private String name; // 비회원 이름
-    private String phoneNumber; // 비회원 전화번호
+    private String status;
 
-    // 기타 필드 및 메소드
+    private String name;
+
+    private String phoneNumber;
 }

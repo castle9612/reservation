@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.security.web.csrf.CsrfToken;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,7 +20,8 @@ public class UserController {
 
     // 회원가입 페이지
     @GetMapping("/signup")
-    public String showSignupForm() {
+    public String showSignupForm(HttpServletRequest request) {
+        // 불필요한 수동 검증 제거
         return "signup";
     }
 
@@ -26,6 +29,7 @@ public class UserController {
     @PostMapping("/signup")
     public String registerUser(@ModelAttribute UserDTO userDTO) {
         userService.signup(userDTO);
+
         return "redirect:/login";
     }
 

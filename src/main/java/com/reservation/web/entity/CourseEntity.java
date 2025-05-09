@@ -15,23 +15,22 @@ import java.time.LocalDateTime;
 public class CourseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id; // 변경됨
 
     @Column(nullable = false)
-    private String name;  // 코스 이름
+    private String name;
 
     @Column(nullable = false)
-    private String staff; // 담당 직원
+    private String staff;
 
     @Column(nullable = false)
-    private LocalDateTime courseDateTime; // 코스의 날짜 및 시간
+    private LocalDateTime courseDateTime;
 
     @Column(nullable = false)
-    private double memberPrice;  // 회원 가격
+    private double memberPrice;
 
     @Column(nullable = false)
-    private double nonMemberPrice;  // 비회원 가격
+    private double nonMemberPrice;
 
     @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate;

@@ -8,11 +8,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class CourseDTO {
-
-    private Long id;
+    private String id;
     private String name;
     private String staff;
-    private String courseDateTime;  // 코스 날짜 및 시간 (String으로 변환)
+    private String courseDateTime;  // String 유지
     private double memberPrice;
     private double nonMemberPrice;
 }

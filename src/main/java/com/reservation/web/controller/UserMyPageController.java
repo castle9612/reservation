@@ -40,7 +40,7 @@ public class UserMyPageController {
     }
 
     @PostMapping("/reservations/update")
-    public String updateReservation(@RequestParam Long reservationId, @RequestParam String newDateTime) {
+    public String updateReservation(@RequestParam String reservationId, @RequestParam String newDateTime) {
         myPageService.updateReservation(reservationId, newDateTime);
         return "redirect:/mypage/reservations";
     }

@@ -34,12 +34,12 @@ public class CourseService {
     }
 
     // 특정 코스 조회
-    public Optional<CourseEntity> findCourseById(Long courseId) {
+    public Optional<CourseEntity> findCourseById(String courseId) {
         return courseRepository.findById(courseId);
     }
 
     // 코스 수정
-    public CourseEntity updateCourse(Long courseId, CourseDTO courseDTO) {
+    public CourseEntity updateCourse(String courseId, CourseDTO courseDTO) {
         Optional<CourseEntity> optionalCourse = courseRepository.findById(courseId);
 
         if (optionalCourse.isPresent()) {
@@ -57,7 +57,7 @@ public class CourseService {
     }
 
     // 코스 삭제
-    public void deleteCourse(Long courseId) {
+    public void deleteCourse(String courseId) {
         courseRepository.deleteById(courseId);
     }
 

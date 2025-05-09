@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -16,23 +17,23 @@ import java.time.LocalDateTime;
 @Table(name = "user")
 public class UserEntity {
 
-    @Id // Primary key
+    @Id
     private String userId;
 
     @Column(length = 100, nullable = false)
     private String password;
 
     @Column(length = 100, nullable = false)
-    private String name;  // userName에서 name으로 변경
+    private String name;
 
     @Column(length = 100, nullable = false)
-    private String email; // userEmail에서 email으로 변경
+    private String email;
 
     @Column(length = 20, nullable = false)
     private String phoneNumber;
 
     @Column(name = "role", nullable = false)
-    private String role = "user";  // 기본 role은 "user"
+    private String role = "user";
 
     @Column(length = 10)
     private String gender;
@@ -53,13 +54,16 @@ public class UserEntity {
     private Boolean privacyConsent;
 
     @Column(length = 1000)
-    private String memo;  // 관리자 메모 필드 추가
+    private String memo;
 
     @Column(name = "package_count", nullable = false)
-    private int packageCount;  // 패키지 남은 횟수 필드 추가
+    private int packageCount;
 
     @PrePersist
     protected void onCreate() {
+        if (this.userId == null) {
+            this.userId = UUID.randomUUID().toString();
+        }
         this.createdDate = LocalDateTime.now();
     }
 
@@ -67,6 +71,7 @@ public class UserEntity {
     protected void onUpdate() {
         this.updatedDate = LocalDateTime.now();
     }
+
 
     @Builder
     public static UserEntity toUserEntity(UserDTO userDTO) {
