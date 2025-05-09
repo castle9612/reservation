@@ -1,0 +1,17 @@
+<!-- templates/course/courseDetail.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Course Detail</title>
+</head>
+<body>
+<h1>Course Detail</h1>
+<p><strong>Name:</strong> <span th:text="${course.name}"></span></p>
+<p><strong>Staff:</strong> <span th:text="${course.staff}"></span></p>
+<p><strong>DateTime:</strong> <span th:text="${course.courseDateTime}"></span></p>
+<p><strong>Member Price:</strong> <span th:text="${course.memberPrice}"></span></p>
+<p><strong>Non-Member Price:</strong> <span th:text="${course.nonMemberPrice}"></span></p>
+<a th:href="@{/courses/edit/{id}(id=${course.id})}">Edit</a> |
+<a th:href="@{/courses}">Back to List</a>
+</body>
+</html>

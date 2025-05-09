@@ -1,0 +1,39 @@
+<!-- templates/course/courseList.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Course List</title>
+</head>
+<body>
+<h1>Course List</h1>
+<a th:href="@{/courses/new}">New Course</a>
+<table border="1">
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Staff</th>
+        <th>DateTime</th>
+        <th>Member Price</th>
+        <th>Non-Member Price</th>
+        <th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="course : ${courses}">
+        <td th:text="${course.name}"></td>
+        <td th:text="${course.staff}"></td>
+        <td th:text="${course.courseDateTime}"></td>
+        <td th:text="${course.memberPrice}"></td>
+        <td th:text="${course.nonMemberPrice}"></td>
+        <td>
+            <a th:href="@{/courses/{id}(id=${course.id})}">View</a> |
+            <a th:href="@{/courses/edit/{id}(id=${course.id})}">Edit</a> |
+            <form th:action="@{/courses/delete/{id}(id=${course.id})}" method="post" style="display:inline;">
+                <button type="submit" onclick="return confirm('Are you sure?')">Delete</button>
+            </form>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

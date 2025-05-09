@@ -1,0 +1,20 @@
+<!-- templates/course/courseForm.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <title th:text="${courseDTO.id != null} ? 'Edit Course' : 'New Course'"></title>
+</head>
+<body>
+<h1 th:text="${courseDTO.id != null} ? 'Edit Course' : 'New Course'"></h1>
+<form th:action="@{${courseDTO.id != null} ? '/courses/edit/' + ${courseDTO.id} : '/courses'}"
+      th:object="${courseDTO}" method="post">
+  <label>Name: <input type="text" th:field="*{name}" required></label><br>
+  <label>Staff: <input type="text" th:field="*{staff}" required></label><br>
+  <label>Course DateTime (YYYY-MM-DDTHH:MM): <input type="text" th:field="*{courseDateTime}" required></label><br>
+  <label>Member Price: <input type="number" th:field="*{memberPrice}" required></label><br>
+  <label>Non-Member Price: <input type="number" th:field="*{nonMemberPrice}" required></label><br>
+  <button type="submit">Submit</button>
+</form>
+<a th:href="@{/courses}">Back to List</a>
+</body>
+</html>
