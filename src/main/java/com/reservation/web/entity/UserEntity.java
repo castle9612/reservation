@@ -61,9 +61,9 @@ public class UserEntity {
 
     @PrePersist
     protected void onCreate() {
-        if (this.userId == null) {
-            this.userId = UUID.randomUUID().toString();
-        }
+//        if (this.userId == null) {
+//            this.userId = UUID.randomUUID().toString();
+//        }
         this.createdDate = LocalDateTime.now();
     }
 
@@ -76,7 +76,7 @@ public class UserEntity {
     @Builder
     public static UserEntity toUserEntity(UserDTO userDTO) {
         UserEntity userEntity = new UserEntity();
-        userEntity.setUserId(userDTO.getUserID());
+        userEntity.setUserId(userDTO.getUserId());
         userEntity.setPassword(userDTO.getPassword());
         userEntity.setName(userDTO.getUserName());
         userEntity.setEmail(userDTO.getUserEmail());

@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @ToString
 public class UserDTO {
-    private String userID;
+    private String userId;
     private String password;
     private String userName;  // name으로 변경
     private String userEmail; // email으로 변경
@@ -23,7 +23,7 @@ public class UserDTO {
 
     public static UserDTO toUserDTO(UserEntity userEntity) {
         UserDTO userDTO = new UserDTO();
-        userDTO.setUserID(userEntity.getUserId());
+        userDTO.setUserId(userEntity.getUserId());
         userDTO.setPassword(userEntity.getPassword());
         userDTO.setUserName(userEntity.getName());
         userDTO.setUserEmail(userEntity.getEmail());

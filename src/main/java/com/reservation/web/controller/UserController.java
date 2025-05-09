@@ -35,28 +35,33 @@ public class UserController {
 
     // 로그인 페이지
     @GetMapping("/login")
-    public String showLoginForm(@RequestParam(value = "error", required = false) String error, Model model) {
+    public String showLoginForm(@RequestParam(value = "error", required = false) String error,
+                                HttpServletRequest request,
+                                Model model) {
         if (error != null) {
-            model.addAttribute("loginError", "Invalid username or password.");
+            String errorMessage = (String) request.getSession().getAttribute("errorMessage");
+            model.addAttribute("errorMessage", errorMessage);
+            request.getSession().removeAttribute("errorMessage"); // 메시지 1회성 처리
         }
         return "login";
     }
 
+
     // 로그인 처리
-    @PostMapping("/login")
-    public String login(@RequestParam String user_id,
-                        @RequestParam String password,
-                        HttpSession session,
-                        Model model) {
-        UserDTO loginUser = userService.login(user_id, password);
-        if (loginUser != null) {
-            session.setAttribute("loginUser", loginUser);
-            return "redirect:/";  // 로그인 성공 후 메인 페이지로 리다이렉트
-        } else {
-            model.addAttribute("loginError", "Incorrect ID or password. Please try again.");
-            return "login";
-        }
-    }
+//    @PostMapping("/login")
+//    public String login(@RequestParam String user_id,
+//                        @RequestParam String password,
+//                        HttpSession session,
+//                        Model model) {
+//        UserDTO loginUser = userService.login(user_id, password);
+//        if (loginUser != null) {
+//            session.setAttribute("loginUser", loginUser);
+//            return "redirect:/";  // 로그인 성공 후 메인 페이지로 리다이렉트
+//        } else {
+//            model.addAttribute("loginError", "Incorrect ID or password. Please try again.");
+//            return "login";
+//        }
+//    }
 
     // 로그아웃 처리
     @GetMapping("/logout")

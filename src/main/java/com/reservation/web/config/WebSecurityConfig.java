@@ -1,5 +1,6 @@
 package com.reservation.web.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,6 +21,9 @@ public class WebSecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    @Autowired
+    private CustomAuthFailureHandler customAuthFailureHandler;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -31,13 +35,17 @@ public class WebSecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "index", "/login", "/signup", "/announcement/list", "/announcement/detail", "/reservation", "/reservations", "/uploads/**").permitAll()
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll() // ✅ 정적 리소스 허용
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .loginProcessingUrl("/login") // ✅ 로그인 처리 URL 명시 (생략해도 기본값이 /login)
+                        .loginProcessingUrl("/login")
+                        .usernameParameter("user_id") // 🔹 사용자 아이디 필드 이름 지정
+                        .passwordParameter("password") // 🔹 비밀번호 필드 이름 지정 (기본값이지만 명시해줌)
+                        .defaultSuccessUrl("/", true) // 로그인 성공 시 이동할 페이지
+                        .failureHandler(customAuthFailureHandler)
                         .permitAll()
                 )
                 .logout(logout -> logout

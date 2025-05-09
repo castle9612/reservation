@@ -19,9 +19,12 @@
 
     <label for="password">Password:</label>
     <input type="password" id="password" name="password" required>
-    <s:csrfInput />
+
     <button type="submit">Login</button>
   </form>
+  <div th:if="${errorMessage}" style="color:red;">
+    <p th:text="${errorMessage}"></p>
+  </div>
   <p>Don't have an account? <a th:href="@{/signup}">Sign up here</a></p>
 </section>
 </body>
