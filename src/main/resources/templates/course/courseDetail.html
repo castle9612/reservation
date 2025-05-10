@@ -1,17 +1,38 @@
-<!-- templates/course/courseDetail.html -->
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
 <head>
-    <title>Course Detail</title>
+    <title th:text="${course?.name ?: '코스 상세'} + ' - 예약 시스템'">코스 상세</title>
+    <style>
+        .detail-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .detail-card h1 { text-align: left; margin-bottom: 15px;}
+        .detail-card p { margin-bottom: 10px; font-size: 1.1rem; }
+        .detail-card strong { color: #333; min-width:100px; display: inline-block;}
+    </style>
 </head>
 <body>
-<h1>Course Detail</h1>
-<p><strong>Name:</strong> <span th:text="${course.name}"></span></p>
-<p><strong>Staff:</strong> <span th:text="${course.staff}"></span></p>
-<p><strong>DateTime:</strong> <span th:text="${course.courseDateTime}"></span></p>
-<p><strong>Member Price:</strong> <span th:text="${course.memberPrice}"></span></p>
-<p><strong>Non-Member Price:</strong> <span th:text="${course.nonMemberPrice}"></span></p>
-<a th:href="@{/courses/edit/{id}(id=${course.id})}">Edit</a> |
-<a th:href="@{/courses}">Back to List</a>
+<div id="main-content">
+    <div th:if="${course}" class="detail-card"> <!-- CourseEntity 사용 -->
+        <h1 th:text="${course.name}">코스 이름</h1>
+        <p><strong>코스 ID:</strong> <span th:text="${course.id}"></span></p>
+        <p><strong>담당자:</strong> <span th:text="${course.staff}"></span></p>
+        <p><strong>일시:</strong> <span th:text="${#temporals.format(course.courseDateTime, 'yyyy-MM-dd HH:mm')}"></span></p>
+        <p><strong>회원가:</strong> <span th:text="${#numbers.formatDecimal(course.memberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></span></p>
+        <p><strong>비회원가:</strong> <span th:text="${#numbers.formatDecimal(course.nonMemberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></span></p>
+
+        <div style="margin-top: 20px;">
+            <a th:href="@{/courses}" class="btn btn-secondary">목록으로</a>
+            <a th:href="@{/reservations/new/member(courseId=${course.id})}" class="btn" style="margin-left:10px;" sec:authorize="isAuthenticated()">이 코스로 예약 (회원)</a>
+            <a th:href="@{/reservations/new/non-member(courseId=${course.id})}" class="btn" style="margin-left:10px;" sec:authorize="isAnonymous()">이 코스로 예약 (비회원)</a>
+            <th:block sec:authorize="hasRole('ADMIN')">
+                <a th:href="@{/courses/edit/{courseId}(courseId=${course.id})}" class="btn btn-warning" style="margin-left:10px;">수정 (관리자)</a>
+            </th:block>
+        </div>
+    </div>
+    <div th:unless="${course}">
+        <p class="error-message">해당 코스를 찾을 수 없습니다.</p>
+    </div>
+</div>
 </body>
 </html>

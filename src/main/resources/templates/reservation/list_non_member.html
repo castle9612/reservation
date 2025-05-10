@@ -1,29 +1,21 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
 <head>
-  <title>비회원 예약 목록</title>
+  <title>비회원 예약 조회 - 예약 시스템</title>
 </head>
 <body>
-<h1>비회원 예약 목록</h1>
-<table>
-  <thead>
-  <tr>
-    <th>이름</th>
-    <th>전화번호</th>
-    <th>코스</th>
-    <th>예약 일시</th>
-    <th>상태</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr th:each="reservation : ${reservations}">
-    <td th:text="${reservation.name}"></td>
-    <td th:text="${reservation.phoneNumber}"></td>
-    <td th:text="${reservation.course.name}"></td>
-    <td th:text="${#dates.format(reservation.reservationDateTime, 'yyyy-MM-dd HH:mm')}"></td>
-    <td th:text="${reservation.status}"></td>
-  </tr>
-  </tbody>
-</table>
+<div id="main-content">
+  <h1>비회원 예약 조회</h1>
+  <p>예약 시 입력하신 연락처로 예약 내역을 조회할 수 있습니다.</p>
+  <form th:action="@{/reservations/search}" method="post">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <div class="form-group">
+      <label for="phoneNumber">연락처:</label>
+      <input type="tel" id="phoneNumber" name="phoneNumber" placeholder="010-1234-5678" required>
+    </div>
+    <button type="submit" class="btn">조회하기</button>
+  </form>
+</div>
 </body>
 </html>

@@ -1,25 +1,37 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
 <head>
-  <title>내 예약 목록</title>
+  <title>나의 예약 목록 - 예약 시스템</title>
 </head>
 <body>
-<h1>내 예약 목록</h1>
-<table>
-  <thead>
-  <tr>
-    <th>코스</th>
-    <th>예약 일시</th>
-    <th>상태</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr th:each="reservation : ${reservations}">
-    <td th:text="${reservation.course.name}"></td>
-    <td th:text="${#dates.format(reservation.reservationDateTime, 'yyyy-MM-dd HH:mm')}"></td>
-    <td th:text="${reservation.status}"></td>
-  </tr>
-  </tbody>
-</table>
+<div id="main-content">
+  <h1>나의 예약 목록</h1>
+  <div th:if="${#lists.isEmpty(reservations)}" class="text-center">
+    <p>예약 내역이 없습니다.</p>
+    <a th:href="@{/courses}" class="btn mt-2">코스 보러가기</a>
+  </div>
+  <table class="styled-table" th:unless="${#lists.isEmpty(reservations)}">
+    <thead>
+    <tr>
+      <th>예약 ID</th>
+      <th>코스 ID</th>
+      <th>예약 일시</th>
+      <th>상태</th>
+      <!-- <th>작업</th> -->
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="reservation : ${reservations}">
+      <td th:text="${reservation.id}">RES001</td>
+      <td th:text="${reservation.courseId}">COURSE01</td>
+      <td th:text="${#temporals.format(reservation.reservationDateTime, 'yyyy-MM-dd HH:mm')}">2024-01-01 10:00</td>
+      <td th:text="${reservation.status}">PENDING</td>
+      <!-- <td><a href="#" class="btn btn-sm btn-danger">예약 취소</a></td> -->
+    </tr>
+    </tbody>
+  </table>
+</div>
 </body>
 </html>
