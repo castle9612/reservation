@@ -1,14 +1,37 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
 <head>
-  <title>비회원 예약 검색</title>
+  <title>비회원 예약 조회 결과 - 예약 시스템</title>
 </head>
 <body>
-<h1>비회원 예약 검색</h1>
-<form action="/reservations/search" method="post">
-  <label for="phoneNumber">전화번호:</label>
-  <input type="text" id="phoneNumber" name="phoneNumber" required><br><br>
-  <button type="submit">검색</button>
-</form>
+<div id="main-content">
+  <h1>예약 조회 결과</h1>
+  <div th:if="${#lists.isEmpty(reservations)}" class="text-center">
+    <p>해당 연락처로 조회된 예약 내역이 없습니다.</p>
+    <a th:href="@{/reservations/search}" class="btn mt-2">다시 검색하기</a>
+  </div>
+  <table class="styled-table" th:unless="${#lists.isEmpty(reservations)}">
+    <thead>
+    <tr>
+      <th>예약자명</th>
+      <th>코스 ID</th>
+      <th>예약 일시</th>
+      <th>상태</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="reservation : ${reservations}">
+      <td th:text="${reservation.name}">홍길동</td>
+      <td th:text="${reservation.courseId}">COURSE01</td>
+      <td th:text="${#temporals.format(reservation.reservationDateTime, 'yyyy-MM-dd HH:mm')}">2024-01-01 10:00</td>
+      <td th:text="${reservation.status}">PENDING</td>
+    </tr>
+    </tbody>
+  </table>
+  <div class="text-center mt-2" th:unless="${#lists.isEmpty(reservations)}">
+    <a th:href="@{/reservations/search}" class="btn btn-secondary">다른 연락처로 검색</a>
+  </div>
+</div>
 </body>
 </html>

@@ -1,14 +1,31 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
 <head>
-  <title>Announcements</title>
+  <title>공지사항 - 예약 시스템</title>
 </head>
 <body>
-<h1>Announcements</h1>
-<ul>
-  <li th:each="announcement : ${announcements}">
-    <a th:href="@{/announcements/{id}(id=${announcement.id})}" th:text="${announcement.title}"></a>
-  </li>
-</ul>
+<div id="main-content">
+  <h1>공지사항</h1>
+  <div th:if="${#lists.isEmpty(announcements)}" class="text-center">
+    <p>등록된 공지사항이 없습니다.</p>
+  </div>
+  <table class="styled-table" th:unless="${#lists.isEmpty(announcements)}">
+    <thead>
+    <tr>
+      <th>번호</th>
+      <th>제목</th>
+      <th>작성일</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="ann, iterStat : ${announcements}"> <!-- AnnouncementEntity 사용 -->
+      <td th:text="${ann.id}">1</td>
+      <td><a th:href="@{/announcement/detail/{id}(id=${ann.id})}" th:text="${ann.title}">공지사항 제목</a></td>
+      <td th:text="${#temporals.format(ann.createdAt, 'yyyy-MM-dd')}">2024-05-10</td>
+    </tr>
+    </tbody>
+  </table>
+</div>
 </body>
 </html>

@@ -1,48 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Page</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <title>마이페이지 - 예약 시스템</title>
 </head>
 <body>
-<header>
-  <h1>My Page</h1>
-</header>
-<section>
-  <h2>My Information</h2>
-  <form action="/mypage/update" method="POST">
-    <label for="userName">Name:</label>
-    <input type="text" id="userName" name="userName" value="{{userName}}" required>
+<div id="main-content">
+  <h1>마이페이지</h1>
+  <div th:if="${param.success}" class="success-message">정보가 성공적으로 수정되었습니다.</div>
+  <div th:if="${param.error}" class="error-message">정보 수정 중 오류가 발생했습니다.</div>
 
-    <label for="userEmail">Email:</label>
-    <input type="email" id="userEmail" name="userEmail" value="{{userEmail}}" required>
+  <form th:action="@{/mypage/update}" method="post" th:object="${userDetails}" th:if="${userDetails}">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <input type="hidden" th:field="*{userId}" /> <!-- DTO에 userId 필드 있어야 함 -->
 
-    <label for="phoneNumber">Phone Number:</label>
-    <input type="text" id="phoneNumber" name="phoneNumber" value="{{phoneNumber}}" required>
-
-    <label for="password">Change Password:</label>
-    <input type="password" id="password" name="password">
-
-    <button type="submit">Update Information</button>
+    <div class="form-group">
+      <label for="userName">이름:</label>
+      <input type="text" id="userName" th:field="*{userName}" required>
+    </div>
+    <div class="form-group">
+      <label for="userEmail">이메일:</label>
+      <input type="email" id="userEmail" th:field="*{userEmail}" required>
+    </div>
+    <div class="form-group">
+      <label for="phoneNumber">전화번호:</label>
+      <input type="tel" id="phoneNumber" th:field="*{phoneNumber}" required>
+    </div>
+    <div class="form-group">
+      <label for="password">새 비밀번호 (변경 시 입력):</label>
+      <input type="password" id="password" name="password" placeholder="변경하지 않으려면 비워두세요">
+    </div>
+    <div class="form-group">
+      <p><strong>보유 패키지 횟수:</strong> <span th:text="*{packageCount}">0</span>회</p>
+    </div>
+    <button type="submit" class="btn">정보 수정</button>
   </form>
-
-  <h2>My Reservations</h2>
-  <table>
-    <thead>
-    <tr>
-      <th>Reservation ID</th>
-      <th>Date</th>
-      <th>Time</th>
-      <th>Status</th>
-      <th>Action</th>
-    </tr>
-    </thead>
-    <tbody>
-    <!-- 예약 데이터가 여기에 반복문을 통해 추가됩니다 -->
-    </tbody>
-  </table>
-</section>
+  <div th:unless="${userDetails}">
+    <p class="error-message">사용자 정보를 불러올 수 없습니다.</p>
+  </div>
+  <hr style="margin: 30px 0;">
+  <h2>나의 예약 현황</h2>
+  <a th:href="@{/reservations}" class="btn btn-info">내 예약 목록 보기</a>
+</div>
 </body>
 </html>

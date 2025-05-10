@@ -47,7 +47,7 @@ public class UserService implements UserDetailsService { // ⬅️ UserDetailsSe
         // 이 예제에서는 UserEntity의 user_id 필드가 유니크하고, 이를 통해 찾는다고 가정합니다.
         // UserEntity의 실제 ID 필드와 조회 방식에 맞춰 수정해야 합니다.
         // 예를 들어, UserEntity의 ID가 Long 타입의 'id'이고, 'userId'라는 별도 문자열 필드가 있다면:
-        Optional<UserEntity> userEntityOptional = userRepository.findByUserId(userId); // ❗️ 이 메소드가 UserRepository에 정의되어 있어야 합니다.
+        Optional<UserEntity> userEntityOptional = userRepository.findById(userId); // ❗️ 이 메소드가 UserRepository에 정의되어 있어야 합니다.
 
         // 만약 UserEntity의 PK가 String 타입의 userId라면:
         // Optional<UserEntity> userEntityOptional = userRepository.findById(userId);

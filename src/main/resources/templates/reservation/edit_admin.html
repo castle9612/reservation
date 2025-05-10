@@ -1,33 +1,66 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
 <head>
-  <title>예약 수정</title>
+  <title>예약 수정 및 상태 변경 - 예약 시스템</title>
 </head>
 <body>
-<h1>예약 수정</h1>
-<form th:action="@{/reservations/admin/{id}/update(id=${reservation.id})}" method="post">
-  <label for="course">코스 선택:</label>
-  <select id="course" name="courseId" required>
-    <option th:each="course : ${courses}" th:value="${course.id}" th:text="${course.name}" th:selected="${course.id == reservation.courseId}"></option>
-  </select><br><br>
+<div id="main-content">
+  <h1 th:text="'예약 정보 수정 (ID: ' + ${reservation.id} + ')'">예약 정보 수정</h1>
+  <div th:if="${successMessage}" class="success-message" th:text="${successMessage}"></div>
+  <div th:if="${errorMessage}" class="error-message" th:text="${errorMessage}"></div>
 
-  <label for="reservationDateTime">예약 일시:</label>
-  <input type="datetime-local" id="reservationDateTime" name="reservationDateTime" th:value="${#dates.format(reservation.reservationDateTime, 'yyyy-MM-dd\'T\'HH:mm')}" required><br><br>
-
-  <label for="status">상태:</label>
-  <select id="status" name="status" required>
-    <option value="PENDING" th:selected="${reservation.status == 'PENDING'}">PENDING</option>
-    <option value="CONFIRMED" th:selected="${reservation.status == 'CONFIRMED'}">CONFIRMED</option>
-    <option value="CANCELED" th:selected="${reservation.status == 'CANCELED'}">CANCELED</option>
-  </select><br><br>
-
-  <button type="submit">수정</button>
-</form>
-
-<form th:action="@{/reservations/admin/{id}/delete(id=${reservation.id})}" method="post">
-  <button type="submit">삭제</button>
-</form>
-
-<a href="/reservations/admin">목록으로 돌아가기</a>
+  <form th:action="@{/reservations/admin/{id}/update(id=${reservation.id})}" th:object="${reservation}" method="post">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <input type="hidden" th:field="*{id}" />
+    <h3>예약자 정보</h3>
+    <div class="form-group">
+      <label for="userId">사용자 ID (회원인 경우):</label>
+      <input type="text" id="userId" th:field="*{userId}" readonly>
+    </div>
+    <div class="form-group">
+      <label for="name">예약자명 (비회원인 경우):</label>
+      <input type="text" id="name" th:field="*{name}" th:readonly="*{userId != null}">
+    </div>
+    <div class="form-group">
+      <label for="phoneNumber">연락처 (비회원인 경우):</label>
+      <input type="tel" id="phoneNumber" th:field="*{phoneNumber}" th:readonly="*{userId != null}">
+    </div>
+    <h3>예약 상세</h3>
+    <div class="form-group">
+      <label for="courseId">코스:</label>
+      <select id="courseId" th:field="*{courseId}" required>
+        <option th:each="course : ${courses}"
+                th:value="${course.id}"
+                th:text="${course.name} + ' (' + ${#temporals.format(course.courseDateTime, 'yyyy-MM-dd HH:mm')} + ')'"
+                th:selected="${course.id == reservation.courseId}"></option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="reservationDateTime">예약 일시:</label>
+      <input type="datetime-local" id="reservationDateTime" th:field="*{reservationDateTime}" required>
+    </div>
+    <button type="submit" class="btn">예약 정보 저장</button>
+    <a th:href="@{/reservations/admin}" class="btn btn-secondary" style="margin-left:10px;">목록으로</a>
+  </form>
+  <hr style="margin: 30px 0;">
+  <h3>예약 상태 변경</h3>
+  <form th:action="@{/reservations/admin/{id}/status(id=${reservation.id})}" method="post">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <div class="form-group">
+      <label for="status">상태:</label>
+      <select id="status" name="status">
+        <option value="PENDING" th:selected="${reservation.status == 'PENDING'}">예약 대기</option>
+        <option value="CONFIRMED" th:selected="${reservation.status == 'CONFIRMED'}">예약 확정</option>
+        <option value="CANCELLED_USER" th:selected="${reservation.status == 'CANCELLED_USER'}">사용자 취소</option>
+        <option value="CANCELLED_ADMIN" th:selected="${reservation.status == 'CANCELLED_ADMIN'}">관리자 취소</option>
+        <option value="COMPLETED" th:selected="${reservation.status == 'COMPLETED'}">이용 완료</option>
+        <option value="NO_SHOW" th:selected="${reservation.status == 'NO_SHOW'}">노쇼</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-info">상태 변경</button>
+  </form>
+</div>
 </body>
 </html>
