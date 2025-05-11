@@ -3,35 +3,76 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
 <head>
-    <title th:text="${course?.name ?: '코스 상세'} + ' - 예약 시스템'">코스 상세</title>
+    <title th:text="${course?.name ?: '코스 상세'} + ' - 예약 시스템'"></title>
     <style>
-        .detail-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .detail-card h1 { text-align: left; margin-bottom: 15px;}
-        .detail-card p { margin-bottom: 10px; font-size: 1.1rem; }
-        .detail-card strong { color: #333; min-width:100px; display: inline-block;}
+        .detail-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            max-width: 700px; /* 카드 최대 너비 설정 */
+            margin: 20px auto; /* 가운데 정렬 및 상하 마진 */
+        }
+        .detail-card h1 {
+            margin-bottom: 20px; /* 제목과 내용 간격 */
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .detail-card p {
+            margin-bottom: 12px;
+            font-size: 1.05rem; /* 약간 큰 폰트 */
+            line-height: 1.6;
+        }
+        .detail-card strong {
+            color: #555;
+            min-width: 120px; /* 라벨 너비 고정 */
+            display: inline-block;
+            font-weight: 600; /* 약간 더 굵게 */
+        }
+        .staff-detail-info img {
+            width: 50px; /* 상세 페이지에서는 약간 더 크게 */
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+            vertical-align: middle;
+        }
+        .action-buttons .btn {
+            margin-right: 10px; /* 버튼 간격 */
+        }
     </style>
 </head>
 <body>
 <div id="main-content">
-    <div th:if="${course}" class="detail-card"> <!-- CourseEntity 사용 -->
-        <h1 th:text="${course.name}">코스 이름</h1>
+    <div th:if="${course}" class="detail-card">
+        <h1 th:text="${course.name}">코스명</h1>
         <p><strong>코스 ID:</strong> <span th:text="${course.id}"></span></p>
-        <p><strong>담당자:</strong> <span th:text="${course.staff}"></span></p>
-        <p><strong>일시:</strong> <span th:text="${#temporals.format(course.courseDateTime, 'yyyy-MM-dd HH:mm')}"></span></p>
+        <div th:if="${course.staff}" class="mb-2 staff-detail-info d-flex align-items-center">
+            <strong>담당자:</strong>
+            <img th:if="${course.staff.profilePicture}" th:src="${course.staff.profilePicture}" alt="프로필 사진">
+            <img th:unless="${course.staff.profilePicture}" th:src="@{/images/default-profile.png}" alt="기본 프로필">
+            <span th:text="${course.staff.name}"></span>
+        </div>
+        <p th:unless="${course.staff}"><strong>담당자:</strong> <span>미지정</span></p>
+        <p><strong>일시:</strong> <span th:text="${course.courseDateTime != null ? #temporals.format(course.courseDateTime, 'yyyy년 MM월 dd일 HH시 mm분') : '미정'}"></span></p>
+        <p><strong>소요시간:</strong> <span th:text="${course.durationMinutes != null ? course.durationMinutes + '분' : '미정'}"></span></p>
         <p><strong>회원가:</strong> <span th:text="${#numbers.formatDecimal(course.memberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></span></p>
         <p><strong>비회원가:</strong> <span th:text="${#numbers.formatDecimal(course.nonMemberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></span></p>
 
-        <div style="margin-top: 20px;">
+        <div class="mt-4 action-buttons">
             <a th:href="@{/courses}" class="btn btn-secondary">목록으로</a>
-            <a th:href="@{/reservations/new/member(courseId=${course.id})}" class="btn" style="margin-left:10px;" sec:authorize="isAuthenticated()">이 코스로 예약 (회원)</a>
-            <a th:href="@{/reservations/new/non-member(courseId=${course.id})}" class="btn" style="margin-left:10px;" sec:authorize="isAnonymous()">이 코스로 예약 (비회원)</a>
+            <!-- 현재 사용자가 예약 가능한지 여부를 판단하는 로직이 필요할 수 있음 (예: 이미 예약했는지, 정원 초과 등) -->
+            <a th:href="@{/reservations/new/member(courseId=${course.id})}" class="btn btn-success" sec:authorize="isAuthenticated()">이 코스로 예약 (회원)</a>
+            <a th:href="@{/reservations/new/non-member(courseId=${course.id})}" class="btn btn-primary" sec:authorize="isAnonymous()">이 코스로 예약 (비회원)</a>
             <th:block sec:authorize="hasRole('ADMIN')">
-                <a th:href="@{/courses/edit/{courseId}(courseId=${course.id})}" class="btn btn-warning" style="margin-left:10px;">수정 (관리자)</a>
+                <a th:href="@{/courses/edit/{id}(id=${course.id})}" class="btn btn-warning">수정 (관리자)</a>
             </th:block>
         </div>
     </div>
-    <div th:unless="${course}">
-        <p class="error-message">해당 코스를 찾을 수 없습니다.</p>
+    <div th:unless="${course}" class="text-center mt-5">
+        <p class="alert alert-warning">해당 코스를 찾을 수 없습니다.</p>
+        <a th:href="@{/courses}" class="btn btn-link">코스 목록으로 돌아가기</a>
     </div>
 </div>
 </body>

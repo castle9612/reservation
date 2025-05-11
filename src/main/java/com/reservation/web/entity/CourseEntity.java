@@ -8,43 +8,41 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "course")
 @Getter
 @Setter
 @NoArgsConstructor
-@Table(name = "courses")
 public class CourseEntity {
 
     @Id
-    private String id; // 변경됨
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private String staff;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_id")
+    private StaffEntity staff;
 
     @Column(nullable = false)
     private LocalDateTime courseDateTime;
 
     @Column(nullable = false)
-    private double memberPrice;
+    private Integer durationMinutes;
 
     @Column(nullable = false)
-    private double nonMemberPrice;
+    private Double memberPrice;
 
-    @Column(name = "created_date", updatable = false)
-    private LocalDateTime createdDate;
+    @Column(nullable = false)
+    private Double nonMemberPrice;
 
-    @Column(name = "updated_date")
-    private LocalDateTime updatedDate;
-
-    @PrePersist
-    protected void onCreate() {
-        createdDate = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedDate = LocalDateTime.now();
+    public CourseEntity(String name, StaffEntity staff, LocalDateTime courseDateTime, Integer durationMinutes, Double memberPrice, Double nonMemberPrice) {
+        this.name = name;
+        this.staff = staff;
+        this.courseDateTime = courseDateTime;
+        this.durationMinutes = durationMinutes;
+        this.memberPrice = memberPrice;
+        this.nonMemberPrice = nonMemberPrice;
     }
 }

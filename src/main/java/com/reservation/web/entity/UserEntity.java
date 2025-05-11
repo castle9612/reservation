@@ -81,7 +81,7 @@ public class UserEntity {
         userEntity.setName(userDTO.getUserName());
         userEntity.setEmail(userDTO.getUserEmail());
         userEntity.setPhoneNumber(userDTO.getPhoneNumber());
-        userEntity.setRole(userDTO.getRole() != null ? userDTO.getRole() : "user");
+        userEntity.setRole(userDTO.getRole() != null ? userDTO.getRole() : "ROLE_USER");
         userEntity.setGender(userDTO.getGender());
         userEntity.setMaritalStatus(userDTO.isMaritalStatus());
         userEntity.setBirthdate(userDTO.getBirthdate());

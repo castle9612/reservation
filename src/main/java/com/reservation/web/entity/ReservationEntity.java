@@ -16,7 +16,7 @@ public class ReservationEntity {
 
     private String userId;
 
-    private String courseId;
+    private Long courseId;
 
     private LocalDateTime reservationDateTime;
 

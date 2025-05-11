@@ -33,10 +33,16 @@ public class ReservationController {
     /**
      * 회원 예약 폼
      */
+    // 회원 예약 폼
     @GetMapping("/new/member")
-    public String showMemberReservationForm(Model model) {
-        model.addAttribute("reservationDTO", new ReservationDTO());
-        model.addAttribute("courses", courseService.findAll());
+    public String showMemberReservationForm(@RequestParam(value = "courseId", required = false) Long courseId, Model model) { // 코스 ID를 받을 수 있도록 변경
+        ReservationDTO reservationDTO = new ReservationDTO();
+        if (courseId != null) {
+            reservationDTO.setCourseId(courseId); // 선택된 코스 ID를 DTO에 설정
+        }
+        model.addAttribute("reservationDTO", reservationDTO);
+        // findAllCoursesWithStaff()를 사용하여 Staff 정보도 포함된 CourseEntity 목록을 가져옴
+        model.addAttribute("courses", courseService.findAllCoursesWithStaff());
         return "reservation/new_member";
     }
 
@@ -44,10 +50,14 @@ public class ReservationController {
      * 비회원 예약 폼
      */
     @GetMapping("/new/non-member")
-    public String showNonMemberReservationForm(Model model) {
-        model.addAttribute("reservationDTO", new ReservationDTO());
-        model.addAttribute("courses", courseService.findAll());
-        return "reservation/new_non_member";
+    public String showNonMemberReservationForm(@RequestParam(value = "courseId", required = false) Long courseId, Model model) { // 코스 ID를 받을 수 있도록 변경
+        ReservationDTO reservationDTO = new ReservationDTO();
+        if (courseId != null) {
+            reservationDTO.setCourseId(courseId); // 선택된 코스 ID를 DTO에 설정
+        }
+        model.addAttribute("reservationDTO", reservationDTO);
+        model.addAttribute("courses", courseService.findAllCoursesWithStaff());
+        return "reservation/new_non-member";
     }
 
     /**
@@ -118,18 +128,16 @@ public class ReservationController {
         return "reservation/list_admin";
     }
 
-    /**
-     * 관리자: 예약 상세 보기 및 수정 폼
-     */
+    // 관리자: 예약 상세 보기 및 수정 폼
     @GetMapping("/admin/{id}/edit")
     @PreAuthorize("hasRole('ADMIN')")
     public String showEditReservationForm(@PathVariable String id, Model model) {
         ReservationEntity reservation = reservationService.findById(id);
         if (reservation == null) {
-            return "redirect:/reservations/admin?error=존재하지 않는 예약입니다.";
+            // ... 오류 처리
         }
         model.addAttribute("reservation", reservation);
-        model.addAttribute("courses", courseService.findAll());
+        model.addAttribute("courses", courseService.findAllCoursesWithStaff()); // 여기도 변경
         return "reservation/edit_admin";
     }
 
