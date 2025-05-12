@@ -38,7 +38,6 @@
             <th>ID</th>
             <th>코스명</th>
             <th>담당자</th>
-            <th>일시</th>
             <th>소요시간</th>
             <th>회원가</th>
             <th>비회원가</th>
@@ -57,7 +56,6 @@
                 </div>
                 <span th:unless="${course.staff}">미지정</span>
             </td>
-            <td th:text="${course.courseDateTime != null ? #temporals.format(course.courseDateTime, 'yyyy-MM-dd HH:mm') : '미정'}"></td>
             <td th:text="${course.durationMinutes != null ? course.durationMinutes + '분' : '미정'}"></td>
             <td th:text="${#numbers.formatDecimal(course.memberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></td>
             <td th:text="${#numbers.formatDecimal(course.nonMemberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></td>

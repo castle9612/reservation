@@ -55,7 +55,6 @@
             <span th:text="${course.staff.name}"></span>
         </div>
         <p th:unless="${course.staff}"><strong>담당자:</strong> <span>미지정</span></p>
-        <p><strong>일시:</strong> <span th:text="${course.courseDateTime != null ? #temporals.format(course.courseDateTime, 'yyyy년 MM월 dd일 HH시 mm분') : '미정'}"></span></p>
         <p><strong>소요시간:</strong> <span th:text="${course.durationMinutes != null ? course.durationMinutes + '분' : '미정'}"></span></p>
         <p><strong>회원가:</strong> <span th:text="${#numbers.formatDecimal(course.memberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></span></p>
         <p><strong>비회원가:</strong> <span th:text="${#numbers.formatDecimal(course.nonMemberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></span></p>

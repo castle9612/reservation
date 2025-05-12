@@ -8,7 +8,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "course")
+@Table(name = "courses")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,9 +26,6 @@ public class CourseEntity {
     private StaffEntity staff;
 
     @Column(nullable = false)
-    private LocalDateTime courseDateTime;
-
-    @Column(nullable = false)
     private Integer durationMinutes;
 
     @Column(nullable = false)
@@ -37,10 +34,9 @@ public class CourseEntity {
     @Column(nullable = false)
     private Double nonMemberPrice;
 
-    public CourseEntity(String name, StaffEntity staff, LocalDateTime courseDateTime, Integer durationMinutes, Double memberPrice, Double nonMemberPrice) {
+    public CourseEntity(String name, StaffEntity staff, Integer durationMinutes, Double memberPrice, Double nonMemberPrice) {
         this.name = name;
         this.staff = staff;
-        this.courseDateTime = courseDateTime;
         this.durationMinutes = durationMinutes;
         this.memberPrice = memberPrice;
         this.nonMemberPrice = nonMemberPrice;

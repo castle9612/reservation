@@ -42,13 +42,6 @@
     </div>
 
     <div class="form-group mb-3">
-      <label for="courseDateTime" class="form-label">일시</label>
-      <input type="datetime-local" id="courseDateTime" th:field="*{courseDateTime}" class="form-control" required />
-      <div class="invalid-feedback">코스 일시를 입력해주세요.</div>
-      <small th:if="${#fields.hasErrors('courseDateTime')}" th:errors="*{courseDateTime}" class="text-danger"></small>
-    </div>
-
-    <div class="form-group mb-3">
       <label for="durationMinutes" class="form-label">소요시간 (분)</label>
       <input type="number" id="durationMinutes" th:field="*{durationMinutes}" class="form-control" min="1" required />
       <div class="invalid-feedback">소요시간(분)을 입력해주세요. (1분 이상)</div>

@@ -27,8 +27,8 @@
         <option value="">-- 코스를 선택하세요 --</option>
         <option th:each="course : ${courses}"
                 th:value="${course.id}"
-                th:text="${course.name} + ' (' + ${#temporals.format(course.courseDateTime, 'yyyy-MM-dd HH:mm')} + ')'"
-                th:selected="${param.courseId != null && course.id == param.courseId}"></option>
+                th:text="${course.name} + ' (담당자: ' + ${course.staff.name} + ')'" <!-- 이 부분에서 course.staff.name 사용 -->
+        th:selected="${param.courseId != null and course.id == param.courseId}"></option> <!-- 따옴표 수정 -->
       </select>
     </div>
     <div class="form-group">
