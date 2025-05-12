@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
+<head>
+  <title>공지사항 관리 - 예약 시스템</title>
+</head>
+<body>
+<div id="main-content">
+  <h1>공지사항 관리</h1>
+  <div class="mb-2 text-right">
+    <a th:href="@{/admin/announcements/announcement/new}" class="btn">새 공지사항 작성</a>
+    <!-- AnnouncementController의 @GetMapping("/announcement/new") 경로와 일치 -->
+  </div>
+  <div th:if="${#lists.isEmpty(announcements)}" class="text-center">
+    <p>등록된 공지사항이 없습니다.</p>
+  </div>
+  <table class="styled-table" th:unless="${#lists.isEmpty(announcements)}">
+    <thead>
+    <tr>
+      <th>ID</th>
+      <th>제목</th>
+      <th>작성일</th>
+      <th>작업</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="ann : ${announcements}">
+      <td th:text="${ann.id}">1</td>
+      <td><a th:href="@{/admin/announcements/{id}(id=${ann.id})}" th:text="${ann.title}">공지사항 제목</a></td>
+      <!-- 위 링크는 사용자용 상세페이지로 연결됨. 관리자용 상세페이지가 별도로 없다면 이대로 두거나, 수정 페이지로 바로 연결 -->
+      <td th:text="${#temporals.format(ann.createdAt, 'yyyy-MM-dd HH:mm')}">2024-01-01</td>
+      <td>
+        <a th:href="@{/admin/announcements/{id}/edit(id=${ann.id})}" class="btn btn-sm btn-warning">수정</a>
+        <form th:action="@{/admin/announcements/{id}/delete(id=${ann.id})}" method="post" style="display: inline-block; margin-left: 5px;" onsubmit="return confirm('정말로 이 공지사항을 삭제하시겠습니까?');">
+          <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+          <button type="submit" class="btn btn-sm btn-danger">삭제</button>
+        </form>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

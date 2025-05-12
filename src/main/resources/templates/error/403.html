@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
+<head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">)
+  <title>접근 거부 (403) - 예약 시스템</title>
+  <style>
+    .error-page-container { text-align: center; padding: 40px 20px; }
+    .error-page-container h1 { font-size: 2.5rem; color: #dc3545; margin-bottom: 10px;}
+    .error-page-container p { font-size: 1.2rem; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+<div id="main-content">
+  <div class="error-page-container">
+    <h1><i class="fas fa-exclamation-triangle" style="margin-right:10px;"></i> 접근 거부</h1> <!-- FontAwesome 아이콘 사용 시 라이브러리 필요 -->
+    <p>이 페이지에 접근할 수 있는 권한이 없습니다.</p>
+    <p>문제가 지속되면 관리자에게 문의해주세요.</p>
+    <a th:href="@{/}" class="btn">홈으로 돌아가기</a>
+    <a href="javascript:history.back()" class="btn btn-secondary" style="margin-left:10px;">이전 페이지로</a>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
+<head>
+  <title th:text="${staffDTO.id == null ? '새 스태프 등록' : '스태프 정보 수정'} + ' - 예약 시스템'">스태프 정보</title>
+</head>
+<body>
+<div id="main-content">
+  <h1 th:text="${staffDTO.id == null ? '새 스태프 등록' : '스태프 정보 수정'}">스태프 정보</h1>
+
+  <!-- th:with를 사용하여 폼의 action URL을 동적으로 설정 -->
+  <!-- 새 스태프 등록 시: /staff (POST) -->
+  <!-- 스태프 수정 시: /staff/edit/{id} (POST) -->
+  <th:block th:with="formAction = (${staffDTO.id == null} ? @{/staff} : @{/staff/edit/{id}(id=${staffDTO.id})})">
+    <form th:object="${staffDTO}"
+          th:action="${formAction}"
+          method="post" class="needs-validation" novalidate> <!-- novalidate는 HTML5 기본 유효성 검사 비활성화 (서버 측 또는 JS 유효성 검사 사용 시) -->
+
+      <!-- CSRF 토큰 자동 추가 (Spring Security 사용 시 Thymeleaf가 자동으로 처리하지만, 명시적으로 추가할 수도 있음) -->
+      <!-- Spring Security와 Thymeleaf를 함께 사용하면 이 hidden input은 자동으로 생성될 수 있습니다. -->
+      <!-- 만약 수동으로 추가해야 하는 상황이거나 명확히 하고 싶다면 아래와 같이 추가합니다. -->
+      <!-- <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" /> -->
+
+      <!-- 전체 유효성 검사 오류 메시지 (BindingResult 전체 오류) -->
+      <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger" role="alert">
+        <p th:each="err : ${#fields.globalErrors()}" th:text="${err}">글로벌 오류 메시지</p>
+      </div>
+
+      <!-- 컨트롤러에서 RedirectAttributes로 전달된 일반 오류 메시지 -->
+      <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
+      <!-- 컨트롤러에서 RedirectAttributes로 전달된 성공 메시지 (폼 로드 시 보일 수 있음) -->
+      <div th:if="${successMessage}" class="alert alert-success" role="alert" th:text="${successMessage}"></div>
+
+
+      <!-- 수정 시에는 ID를 hidden으로 전달 (staffDTO.id가 null이 아니거나 0이 아닐 때) -->
+      <input type="hidden" th:if="${staffDTO.id != null && staffDTO.id != 0}" th:field="*{id}" />
+
+      <div class="mb-3">
+        <label for="name" class="form-label">이름 <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" th:classappend="${#fields.hasErrors('name')} ? 'is-invalid' : ''" id="name" th:field="*{name}" required>
+        <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="invalid-feedback"></div>
+      </div>
+
+      <div class="mb-3">
+        <label for="profilePicture" class="form-label">프로필 사진 URL</label>
+        <input type="url" class="form-control" th:classappend="${#fields.hasErrors('profilePicture')} ? 'is-invalid' : ''" id="profilePicture" th:field="*{profilePicture}" placeholder="https://example.com/image.jpg">
+        <div th:if="${#fields.hasErrors('profilePicture')}" th:errors="*{profilePicture}" class="invalid-feedback"></div>
+        <small class="form-text text-muted">유효한 이미지 URL을 입력해주세요. (선택 사항)</small>
+        <div th:if="${staffDTO.profilePicture != null && !staffDTO.profilePicture.isEmpty()}" class="mt-2">
+          <img th:src="${staffDTO.profilePicture}" alt="프로필 미리보기" style="max-width: 150px; max-height: 150px; border-radius: 4px; border: 1px solid #ddd;">
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary" th:text="${staffDTO.id == null ? '등록' : '수정'}">저장</button>
+        <a th:href="@{/staff}" class="btn btn-secondary">취소</a>
+      </div>
+    </form>
+  </th:block> <!-- th:with 블록 닫기 -->
+</div>
+
+<!-- Bootstrap 5 기본 유효성 검사 스크립트 (선택적이지만, class="needs-validation" novalidate와 함께 사용) -->
+<script th:if="${false}"> // 이 스크립트를 사용하려면 true로 변경하거나, layout.html 등에 이미 포함되어 있는지 확인
+(function () {
+  'use strict'
+  var forms = document.querySelectorAll('.needs-validation')
+  Array.prototype.slice.call(forms)
+          .forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+              if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+              }
+              form.classList.add('was-validated')
+            }, false)
+          })
+})()
+</script>
+</body>
+</html>
