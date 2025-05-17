@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -16,9 +18,15 @@ public class AnnouncementEntity {
     private Long id;
 
     private String title;
+
+    @Lob // 대용량 텍스트를 위해
+    @Column(columnDefinition = "TEXT")
     private String content;
 
-    private String imagePath;  // 이미지 경로 필드 추가
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "announcement_attachments", joinColumns = @JoinColumn(name = "announcement_id"))
+    @Column(name = "file_path")
+    private List<String> attachmentPaths = new ArrayList<>();
 
     private LocalDateTime createdAt;
 }

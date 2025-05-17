@@ -2,103 +2,135 @@ package com.reservation.web.service;
 
 import com.reservation.web.entity.AnnouncementEntity;
 import com.reservation.web.repository.AnnouncementRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class AnnouncementService {
     private final AnnouncementRepository announcementRepository;
+    private final Path rootFileLocation; // 파일 저장 루트 경로
 
-    // ⬇️ 이 부분: 프로젝트 루트의 'uploads' 폴더를 사용하도록 경로 정의
-    private final Path UPLOAD_DIR_PATH = Paths.get(System.getProperty("user.dir"), "uploads").toAbsolutePath();
-
-    public AnnouncementService(AnnouncementRepository announcementRepository) {
+    public AnnouncementService(AnnouncementRepository announcementRepository,
+                               @Value("${file.upload-dir}") String uploadDir) { // application.properties에서 경로 주입
         this.announcementRepository = announcementRepository;
+        this.rootFileLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(this.rootFileLocation);
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not create upload directory!", ex);
+        }
     }
 
     public List<AnnouncementEntity> findAll() {
-        return announcementRepository.findAll();
+        return announcementRepository.findAllByOrderByCreatedAtDesc(); // 최신순 정렬 예시
     }
 
-    public AnnouncementEntity save(AnnouncementEntity announcement, MultipartFile imageFile) throws IOException {
-        // ⬇️ 파일 업로드 로직 시작
-        if (imageFile != null && !imageFile.isEmpty()) {
-            // 디렉토리 생성 (없으면)
-            Files.createDirectories(UPLOAD_DIR_PATH);
-
-            // 파일명 중복 방지를 위해 현재 시간 추가
-            String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
-            Path filePath = UPLOAD_DIR_PATH.resolve(fileName);
-
-            // 파일 저장
-            Files.write(filePath, imageFile.getBytes());
-
-            // DB에 저장될 웹 접근 경로 설정
-            announcement.setImagePath("/uploads/" + fileName);
-        }
-        // ⬆️ 파일 업로드 로직 끝
-
+    @Transactional
+    public AnnouncementEntity save(AnnouncementEntity announcement, MultipartFile[] attachmentFiles) throws IOException {
         announcement.setCreatedAt(LocalDateTime.now());
+
+        if (attachmentFiles != null && attachmentFiles.length > 0) {
+            List<String> attachmentPaths = new ArrayList<>();
+            for (MultipartFile file : attachmentFiles) {
+                if (file != null && !file.isEmpty()) {
+                    String fileName = storeFile(file);
+                    attachmentPaths.add("/uploads/" + fileName); // 웹 접근 경로
+                }
+            }
+            announcement.setAttachmentPaths(attachmentPaths);
+        }
         return announcementRepository.save(announcement);
     }
 
-    public AnnouncementEntity update(Long id, AnnouncementEntity updatedAnnouncement, MultipartFile imageFile) throws IOException {
+    @Transactional
+    public AnnouncementEntity update(Long id, AnnouncementEntity updatedAnnouncementData, MultipartFile[] newAttachmentFiles, List<String> deletedAttachmentPaths) throws IOException {
         AnnouncementEntity existingAnnouncement = announcementRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid announcement Id:" + id));
 
-        existingAnnouncement.setTitle(updatedAnnouncement.getTitle());
-        existingAnnouncement.setContent(updatedAnnouncement.getContent());
+        existingAnnouncement.setTitle(updatedAnnouncementData.getTitle());
+        existingAnnouncement.setContent(updatedAnnouncementData.getContent());
 
-        // ⬇️ 파일 업로드 로직 시작 (새로운 파일이 제공된 경우에만 처리)
-        if (imageFile != null && !imageFile.isEmpty()) {
-            // 기존 파일 삭제 로직 (선택 사항)
-             if (existingAnnouncement.getImagePath() != null && !existingAnnouncement.getImagePath().isEmpty()) {
-                 try {
-                     Path oldFilePath = UPLOAD_DIR_PATH.resolve(existingAnnouncement.getImagePath().substring("/uploads/".length()));
-                     Files.deleteIfExists(oldFilePath);
-                 } catch (IOException e) {
-                     // 로깅 또는 예외 처리
-                     System.err.println("Failed to delete old image: " + e.getMessage());
-                 }
-             }
+        List<String> currentAttachmentPaths = existingAnnouncement.getAttachmentPaths() != null ? new ArrayList<>(existingAnnouncement.getAttachmentPaths()) : new ArrayList<>();
 
-            Files.createDirectories(UPLOAD_DIR_PATH); // 디렉토리 생성 (없으면)
-
-            String fileName = System.currentTimeMillis() + "_" + imageFile.getOriginalFilename();
-            Path filePath = UPLOAD_DIR_PATH.resolve(fileName);
-
-            Files.write(filePath, imageFile.getBytes());
-
-            existingAnnouncement.setImagePath("/uploads/" + fileName); // 새 이미지 경로로 업데이트
+        if (deletedAttachmentPaths != null && !deletedAttachmentPaths.isEmpty()) {
+            for (String pathToDelete : deletedAttachmentPaths) {
+                deleteFileFromServer(pathToDelete);
+                currentAttachmentPaths.remove(pathToDelete);
+            }
         }
-        // ⬆️ 파일 업로드 로직 끝
 
-        // 수정 시에는 createdAt은 변경하지 않음 (보통 updated_at 필드를 사용하지만 현재 Entity에는 없음)
+        if (newAttachmentFiles != null && newAttachmentFiles.length > 0) {
+            for (MultipartFile file : newAttachmentFiles) {
+                if (file != null && !file.isEmpty()) {
+                    String fileName = storeFile(file);
+                    currentAttachmentPaths.add("/uploads/" + fileName);
+                }
+            }
+        }
+        existingAnnouncement.setAttachmentPaths(currentAttachmentPaths);
         return announcementRepository.save(existingAnnouncement);
     }
 
+    @Transactional
     public void delete(Long id) {
-        // 파일 삭제 로직 (선택 사항)
-         AnnouncementEntity announcement = findById(id);
-         if (announcement != null && announcement.getImagePath() != null && !announcement.getImagePath().isEmpty()) {
-             try {
-                 Path filePath = UPLOAD_DIR_PATH.resolve(announcement.getImagePath().substring("/uploads/".length()));
-                 Files.deleteIfExists(filePath);
-             } catch (IOException e) {
-                 System.err.println("Failed to delete image on announcement deletion: " + e.getMessage());
-             }
-         }
+        AnnouncementEntity announcement = findById(id);
+        if (announcement != null && announcement.getAttachmentPaths() != null) {
+            for (String path : announcement.getAttachmentPaths()) {
+                try {
+                    deleteFileFromServer(path);
+                } catch (IOException e) {
+                    System.err.println("Failed to delete attachment file: " + path + " - " + e.getMessage());
+                }
+            }
+        }
         announcementRepository.deleteById(id);
     }
 
     public AnnouncementEntity findById(Long id) {
         return announcementRepository.findById(id).orElse(null);
     }
+
+    public String storeFile(MultipartFile file) throws IOException {
+        if (file.isEmpty()) {
+            throw new IOException("Failed to store empty file.");
+        }
+        String originalFileName = file.getOriginalFilename();
+        String extension = "";
+        if (originalFileName != null && originalFileName.contains(".")) {
+            extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+        }
+        String fileName = UUID.randomUUID().toString() + extension;
+        Path targetLocation = this.rootFileLocation.resolve(fileName);
+        Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+        return fileName;
+    }
+
+    private void deleteFileFromServer(String filePathWithContext) throws IOException {
+        if (filePathWithContext != null && filePathWithContext.startsWith("/uploads/")) {
+            String fileName = filePathWithContext.substring("/uploads/".length());
+            Path targetLocation = this.rootFileLocation.resolve(fileName);
+            Files.deleteIfExists(targetLocation);
+        }
+    }
+
+    // Summernote 이미지 업로드용 메소드
+    public String storeSummernoteImage(MultipartFile multipartFile) throws IOException {
+        String fileName = storeFile(multipartFile);
+        return "/uploads/" + fileName; // 웹 접근 경로 반환
+    }
 }
+
+// AnnouncementRepository에 추가 (최신순 정렬)
+// List<AnnouncementEntity> findAllByOrderByCreatedAtDesc();
