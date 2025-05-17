@@ -33,13 +33,15 @@
       <select id="courseId" th:field="*{courseId}" required>
         <option th:each="course : ${courses}"
                 th:value="${course.id}"
-                th:text="${course.name} + ' (' + ${#temporals.format(course.courseDateTime, 'yyyy-MM-dd HH:mm')} + ')'"
-                th:selected="${course.id == reservation.courseId}"></option>
+                th:text="${course.name} + ' (' + ${course.durationMinutes} + '분)'"
+        th:selected="${course.id == reservation.courseId}"></option>
       </select>
     </div>
     <div class="form-group">
       <label for="reservationDateTime">예약 일시:</label>
-      <input type="datetime-local" id="reservationDateTime" th:field="*{reservationDateTime}" required>
+      <input type="datetime-local" id="reservationDateTime" name="reservationDateTime"
+             th:value="${reservation.reservationDateTime != null ? #temporals.format(reservation.reservationDateTime, 'yyyy-MM-dd''T''HH:mm') : ''}"
+             required>
     </div>
     <button type="submit" class="btn">예약 정보 저장</button>
     <a th:href="@{/reservations/admin}" class="btn btn-secondary" style="margin-left:10px;">목록으로</a>

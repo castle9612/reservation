@@ -46,7 +46,7 @@
                 <tbody>
                 <tr th:each="res : ${userDetails.reservations}">
                     <td th:text="${res.id}"></td>
-                    <td th:text="${res.courseId}"></td>
+                    <td th:text="${res.course?.id}"></td>
                     <td th:text="${#temporals.format(res.reservationDateTime, 'yyyy-MM-dd HH:mm')}"></td>
                     <td th:text="${res.status}"></td>
                 </tr>

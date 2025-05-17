@@ -1,11 +1,11 @@
 package com.reservation.web.controller;
 
-import com.reservation.web.dto.ReservationDTO; // DTO 사용
-import com.reservation.web.entity.ReservationEntity; // Entity는 Service/Repository와 주로 사용
+import com.reservation.web.dto.ReservationDTO;
+import com.reservation.web.entity.ReservationEntity;
 import com.reservation.web.service.ReservationService;
 import com.reservation.web.service.CourseService;
-import com.reservation.web.service.UserService; // 사용자 정보 서비스
-import com.reservation.web.entity.CourseEntity; // 폼에서 코스 목록을 위해 Entity를 그대로 사용한다면 필요
+import com.reservation.web.service.UserService;
+// import com.reservation.web.entity.CourseEntity; // CourseService에서 CourseEntity를 반환하므로 직접 사용 가능
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,10 +14,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional; // Optional 사용
-import java.util.stream.Collectors; // List 변환 시 필요
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/reservations")
@@ -25,7 +24,7 @@ public class ReservationController {
 
     private final ReservationService reservationService;
     private final CourseService courseService;
-    private final UserService userService; // 사용자 정보를 가져오기 위한 서비스
+    private final UserService userService;
 
     @Autowired
     public ReservationController(ReservationService reservationService, CourseService courseService, UserService userService) {
@@ -34,32 +33,25 @@ public class ReservationController {
         this.userService = userService;
     }
 
+    // ... (showMemberReservationForm, showNonMemberReservationForm, saveReservation 메소드는 이전과 동일하게 유지)
     /**
      * 회원 예약 폼
      */
     @GetMapping("/new/member")
-    // @PreAuthorize("isAuthenticated()") // 로그인된 사용자만 접근 가능하도록 권한 추가 고려
     public String showMemberReservationForm(@RequestParam(value = "courseId", required = false) Long courseId, Model model) {
         ReservationDTO reservationDTO = new ReservationDTO();
         if (courseId != null) {
-            reservationDTO.setCourseId(courseId); // 선택된 코스 ID를 DTO에 설정
+            reservationDTO.setCourseId(courseId);
         }
-
-        // 회원 예약 폼에서는 현재 로그인된 사용자 ID를 미리 DTO에 설정해주는 것이 좋습니다.
-        // TODO: UserService에서 현재 사용자 ID를 가져오는 로직 구현 필요 (예: SecurityContextHolder 사용)
-        // String currentUserId = userService.getCurrentUserId(); // 예시
+        // 예시: 현재 사용자 ID 설정 (실제 구현 필요)
+        // String currentUserId = userService.getCurrentUserId();
         // if (currentUserId != null) {
         //     reservationDTO.setUserId(currentUserId);
         // } else {
-        // 로그인되지 않은 경우 회원 예약 폼에 접근할 수 없도록 처리 (예: 로그인 페이지 리다이렉트)
-        //     return "redirect:/login";
+        //     return "redirect:/login"; // 로그인되지 않은 경우
         // }
-
-
-        model.addAttribute("reservationDTO", reservationDTO);
-        // 템플릿에서 CourseEntity의 staff 필드에 접근 가능해야 합니다.
+        model.addAttribute("reservationDTO", reservationDTO); // 폼 객체 이름은 DTO로 유지
         model.addAttribute("courses", courseService.findAllCoursesWithStaff());
-        // TODO: new_member.html 템플릿도 DTO 구조에 맞게 수정해야 합니다.
         return "reservation/new_member";
     }
 
@@ -70,11 +62,10 @@ public class ReservationController {
     public String showNonMemberReservationForm(@RequestParam(value = "courseId", required = false) Long courseId, Model model) {
         ReservationDTO reservationDTO = new ReservationDTO();
         if (courseId != null) {
-            reservationDTO.setCourseId(courseId); // 선택된 코스 ID를 DTO에 설정
+            reservationDTO.setCourseId(courseId);
         }
-        model.addAttribute("reservationDTO", reservationDTO);
+        model.addAttribute("reservationDTO", reservationDTO); // 폼 객체 이름은 DTO로 유지
         model.addAttribute("courses", courseService.findAllCoursesWithStaff());
-        // TODO: new_non_member.html 템플릿도 DTO 구조에 맞게 수정해야 합니다.
         return "reservation/new_non-member";
     }
 
@@ -82,97 +73,74 @@ public class ReservationController {
      * 예약 저장 (회원 및 비회원 공통)
      */
     @PostMapping("/save")
-    public String saveReservation(@ModelAttribute ReservationDTO reservationDTO, RedirectAttributes redirectAttributes) {
+    public String saveReservation(@ModelAttribute("reservationDTO") ReservationDTO reservationDTO, RedirectAttributes redirectAttributes) { // @ModelAttribute에 이름 명시
         try {
-            // 1. DTO에 대한 기본적인 유효성 검사 (컨트롤러 또는 서비스에서 수행 가능)
             if (reservationDTO.getCourseId() == null || reservationDTO.getReservationDateTime() == null) {
                 throw new IllegalArgumentException("코스와 예약 희망 일시는 필수 항목입니다.");
             }
 
-            // 비회원 예약인 경우 이름과 전화번호 필수 확인
-            // 회원 예약인 경우 DTO의 userId는 서비스에서 Authentication 객체를 통해 가져오는 것이 안전합니다.
-            // 현재 DTO에 userId가 넘어온다고 가정하고, 비회원만 이름/전화번호 확인
-            if (reservationDTO.getUserId() == null || reservationDTO.getUserId().trim().isEmpty()) { // userId가 비어있으면 비회원으로 간주
+            if (reservationDTO.getUserId() == null || reservationDTO.getUserId().trim().isEmpty()) {
                 if (reservationDTO.getName() == null || reservationDTO.getName().trim().isEmpty() ||
                         reservationDTO.getPhoneNumber() == null || reservationDTO.getPhoneNumber().trim().isEmpty()) {
                     throw new IllegalArgumentException("예약자명과 연락처는 비회원 예약 시 필수 항목입니다.");
                 }
             } else {
-                // 회원 예약의 경우 DTO에 userId가 넘어왔다면, 서비스에서 Authentication 객체와 비교하여 일치하는지 확인할 수 있습니다.
-                // 또는 여기서 Authentication에서 가져온 userId를 DTO에 덮어씌우는 것이 가장 안전합니다.
-                // 예: String currentUserId = userService.getCurrentUserId(); // Authentication에서 가져옴
+                // 회원 예약 시 userId 처리 (예: 현재 인증된 사용자와 비교)
+                // String currentUserId = userService.getCurrentUserId();
                 // if (currentUserId == null || !currentUserId.equals(reservationDTO.getUserId())) {
                 //    throw new IllegalStateException("인증된 사용자 정보가 일치하지 않습니다.");
                 // }
-                // reservationDTO.setUserId(currentUserId); // DTO의 userId를 인증된 사용자로 강제 설정
-                // TODO: 실제 UserService 구현에 따라 회원 ID 처리 로직 필요
             }
 
-
-            // 2. 서비스의 saveReservation 메소드에 DTO 객체를 바로 전달
-            // 서비스가 DTO를 Entity로 변환하고 CourseEntity 관계를 설정합니다.
             reservationService.saveReservation(reservationDTO);
-
             redirectAttributes.addFlashAttribute("successMessage", "예약이 성공적으로 등록되었습니다.");
 
-            // 예약 성공 후 리다이렉트 경로 결정
-            // 회원 예약이면 회원 예약 목록, 비회원 예약이면 비회원 검색 폼 등으로 리다이렉트
             if (reservationDTO.getUserId() != null && !reservationDTO.getUserId().trim().isEmpty()) {
-                return "redirect:/reservations"; // 회원 예약 목록 페이지
+                return "redirect:/reservations";
             } else {
-                return "redirect:/reservations/search"; // 비회원 예약 검색 폼 페이지
+                return "redirect:/reservations/search";
             }
 
         } catch (IllegalStateException | IllegalArgumentException e) {
-            // 서비스 로직에서 발생한 오류 메시지를 flash attribute로 전달
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-
-            // 오류 발생 시 이전 폼으로 돌아가도록 리다이렉트
-            // courseId와 reservationDateTime을 쿼리 파라미터로 유지하여 폼 상태 복원
             String redirectPath = "/reservations/new/";
-            if (reservationDTO.getUserId() != null && !reservationDTO.getUserId().trim().isEmpty()) {
-                redirectPath += "member";
-            } else {
-                redirectPath += "non-member";
-            }
+            redirectPath += (reservationDTO.getUserId() != null && !reservationDTO.getUserId().trim().isEmpty()) ? "member" : "non-member";
 
+            // 폼 데이터 유지를 위해 DTO 전체를 FlashAttribute로 전달할 수도 있습니다.
+            // redirectAttributes.addFlashAttribute("reservationDTO", reservationDTO);
+            // 또는 필요한 필드만 쿼리 파라미터로 전달
             String queryParams = "";
             if (reservationDTO.getCourseId() != null) {
                 queryParams += "courseId=" + reservationDTO.getCourseId();
             }
-            if (reservationDTO.getReservationDateTime() != null) {
-                if (!queryParams.isEmpty()) queryParams += "&";
-                queryParams += "reservationDateTime=" + reservationDTO.getReservationDateTime().toString();
-            }
+            // reservationDateTime은 문자열로 변환 시 포맷 주의
+            // if (reservationDTO.getReservationDateTime() != null) {
+            //     if (!queryParams.isEmpty()) queryParams += "&";
+            //     queryParams += "reservationDateTime=" + reservationDTO.getReservationDateTime().toString();
+            // }
             if (!queryParams.isEmpty()) {
                 redirectPath += "?" + queryParams;
             }
-
-
             return "redirect:" + redirectPath;
         }
     }
+
 
     /**
      * 회원 자신의 예약 목록 보기
      */
     @GetMapping
-    @PreAuthorize("hasRole('USER')") // 로그인된 USER 역할만 접근 가능
+    @PreAuthorize("hasRole('USER')")
     public String viewUserReservations(Model model) {
-        // TODO: UserService에서 현재 사용자 ID를 가져오는 안전한 방법 구현 필요
-        String userId = userService.getCurrentUserId(); // 예시: SecurityContextHolder 등 사용
+        String userId = userService.getCurrentUserId();
         if (userId == null || userId.trim().isEmpty()) {
-            // 로그인되지 않은 경우 또는 userId를 가져오지 못한 경우 처리 (PreAuthorize에 의해 대부분 처리됨)
-            return "redirect:/login"; // 또는 오류 페이지
+            return "redirect:/login";
         }
-        List<ReservationEntity> reservationEntities = reservationService.findByUserId(userId);
-        // Entity 목록을 DTO 목록으로 변환하여 뷰에 전달
-        List<ReservationDTO> reservationDTOs = reservationEntities.stream()
-                .map(this::convertToDto)
+        List<ReservationDTO> reservationDTOs = reservationService.findByUserId(userId)
+                .stream()
+                .map(this::convertToDto) // Entity -> DTO 변환
                 .collect(Collectors.toList());
-
-        model.addAttribute("reservations", reservationDTOs); // DTO 목록 전달
-        // TODO: list_user.html 템플릿도 DTO 구조에 맞게 수정해야 합니다.
+        model.addAttribute("reservations", reservationDTOs);
         return "reservation/list_user";
     }
 
@@ -189,14 +157,11 @@ public class ReservationController {
      */
     @PostMapping("/search")
     public String searchNonMemberReservations(@RequestParam("phoneNumber") String phoneNumber, Model model) {
-        List<ReservationEntity> reservationEntities = reservationService.findByPhoneNumber(phoneNumber);
-        // Entity 목록을 DTO 목록으로 변환
-        List<ReservationDTO> reservationDTOs = reservationEntities.stream()
-                .map(this::convertToDto)
+        List<ReservationDTO> reservationDTOs = reservationService.findByPhoneNumber(phoneNumber)
+                .stream()
+                .map(this::convertToDto) // Entity -> DTO 변환
                 .collect(Collectors.toList());
-
-        model.addAttribute("reservations", reservationDTOs); // DTO 목록 전달
-        // TODO: list_non_member.html 템플릿도 DTO 구조에 맞게 수정해야 합니다.
+        model.addAttribute("reservations", reservationDTOs);
         return "reservation/list_non_member";
     }
 
@@ -204,36 +169,35 @@ public class ReservationController {
      * 관리자: 모든 예약 목록 보기
      */
     @GetMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')") // ADMIN 역할만 접근 가능
+    @PreAuthorize("hasRole('ADMIN')")
     public String viewAllReservations(Model model) {
-        List<ReservationEntity> reservationEntities = reservationService.findAll();
-        // Entity 목록을 DTO 목록으로 변환
-        List<ReservationDTO> reservationDTOs = reservationEntities.stream()
-                .map(this::convertToDto)
+        List<ReservationDTO> reservationDTOs = reservationService.findAll()
+                .stream()
+                .map(this::convertToDto) // Entity -> DTO 변환
                 .collect(Collectors.toList());
-
         model.addAttribute("reservations", reservationDTOs); // DTO 목록 전달
-        // TODO: list_admin.html 템플릿도 DTO 구조에 맞게 수정해야 합니다.
         return "reservation/list_admin";
     }
 
-    // 관리자: 예약 상세 보기 및 수정 폼
+    /**
+     * 관리자: 예약 상세 보기 및 수정 폼
+     */
     @GetMapping("/admin/{id}/edit")
-    @PreAuthorize("hasRole('ADMIN')") // ADMIN 역할만 접근 가능
-    public String showEditReservationForm(@PathVariable String id, Model model, RedirectAttributes redirectAttributes) { // ID 타입을 String으로 변경
-        Optional<ReservationEntity> reservationEntityOptional = reservationService.findById(id); // 서비스 호출 시 String ID 전달
+    @PreAuthorize("hasRole('ADMIN')")
+    public String showEditReservationForm(@PathVariable String id, Model model, RedirectAttributes redirectAttributes) {
+        Optional<ReservationEntity> reservationEntityOptional = reservationService.findById(id);
 
         if (!reservationEntityOptional.isPresent()) {
             redirectAttributes.addFlashAttribute("errorMessage", "유효하지 않은 예약 ID: " + id);
-            return "redirect:/reservations/admin"; // 관리자 목록 페이지로 리다이렉트
+            return "redirect:/reservations/admin";
         }
 
         ReservationEntity reservationEntity = reservationEntityOptional.get();
+        ReservationDTO reservationDTO = convertToDto(reservationEntity); // Entity -> DTO 변환
 
-        // 폼 바인딩을 위해 ReservationDTO로 변환하여 모델에 추가
-        model.addAttribute("reservationDTO", convertToDto(reservationEntity));
-        model.addAttribute("courses", courseService.findAllCoursesWithStaff()); // CourseEntity 목록
-        // TODO: edit_admin.html 템플릿도 DTO와 CourseEntity 구조에 맞게 수정해야 합니다.
+        // 템플릿에서 th:object="${reservation}"을 사용하므로 모델 객체 이름을 "reservation"으로 변경
+        model.addAttribute("reservation", reservationDTO); // "reservationDTO" 대신 "reservation" 사용
+        model.addAttribute("courses", courseService.findAllCoursesWithStaff());
         return "reservation/edit_admin";
     }
 
@@ -241,18 +205,20 @@ public class ReservationController {
      * 관리자: 예약 수정
      */
     @PostMapping("/admin/{id}/update")
-    @PreAuthorize("hasRole('ADMIN')") // ADMIN 역할만 접근 가능
-    public String updateReservation(@PathVariable String id, @ModelAttribute ReservationDTO reservationDTO, RedirectAttributes redirectAttributes) { // ID 타입을 String으로 변경
+    @PreAuthorize("hasRole('ADMIN')")
+    // 템플릿에서 th:object="${reservation}"으로 받았으므로 @ModelAttribute("reservation")으로 받음
+    public String updateReservation(@PathVariable String id, @ModelAttribute("reservation") ReservationDTO reservationDTO, RedirectAttributes redirectAttributes) {
         try {
-            // DTO에 ID 설정 (PathVariable로 받은 ID를 DTO에 넣어 서비스로 전달)
-            reservationDTO.setId(id); // DTO의 ID도 String
+            // PathVariable의 ID와 DTO의 ID가 일치하는지 확인하거나, DTO의 ID를 PathVariable로 설정
+            if (reservationDTO.getId() == null || !reservationDTO.getId().equals(id)) {
+                reservationDTO.setId(id); // DTO의 ID를 PathVariable ID로 강제 설정
+            }
 
-            // 서비스에서 DTO와 ID를 받아 업데이트 로직 처리
-            reservationService.updateReservation(id, reservationDTO); // 서비스 호출 시 String ID 전달
-            redirectAttributes.addFlashAttribute("successMessage", "예약이 성공적으로 수정되었습니다.");
+            reservationService.updateReservation(id, reservationDTO);
+            redirectAttributes.addFlashAttribute("successMessage", "예약 ID '" + id + "' 정보가 성공적으로 수정되었습니다.");
             return "redirect:/reservations/admin";
         } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "예약 수정 실패: " + e.getMessage());
             // 오류 발생 시 수정 폼으로 돌아가도록 리다이렉트
             return "redirect:/reservations/admin/" + id + "/edit";
         }
@@ -262,13 +228,13 @@ public class ReservationController {
      * 관리자: 예약 삭제
      */
     @PostMapping("/admin/{id}/delete")
-    @PreAuthorize("hasRole('ADMIN')") // ADMIN 역할만 접근 가능
-    public String deleteReservation(@PathVariable String id, RedirectAttributes redirectAttributes) { // ID 타입을 String으로 변경
+    @PreAuthorize("hasRole('ADMIN')")
+    public String deleteReservation(@PathVariable String id, RedirectAttributes redirectAttributes) {
         try {
-            reservationService.deleteReservation(id); // 서비스 호출 시 String ID 전달
-            redirectAttributes.addFlashAttribute("successMessage", "예약이 성공적으로 삭제되었습니다.");
+            reservationService.deleteReservation(id);
+            redirectAttributes.addFlashAttribute("successMessage", "예약 ID '" + id + "' 정보가 성공적으로 삭제되었습니다.");
         } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "예약 삭제 실패: " + e.getMessage());
         }
         return "redirect:/reservations/admin";
     }
@@ -277,47 +243,42 @@ public class ReservationController {
      * 관리자: 예약 상태 변경 (확인, 취소 등)
      */
     @PostMapping("/admin/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')") // ADMIN 역할만 접근 가능
-    public String changeReservationStatus(@PathVariable String id, @RequestParam("status") String status, RedirectAttributes redirectAttributes) { // ID 타입을 String으로 변경
+    @PreAuthorize("hasRole('ADMIN')")
+    public String changeReservationStatus(@PathVariable String id, @RequestParam("status") String status, RedirectAttributes redirectAttributes) {
         try {
-            // 서비스에서 해당 예약을 찾음
-            ReservationEntity reservationEntity = reservationService.findById(id) // 서비스 호출 시 String ID 전달
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예약입니다."));
+            // 서비스에서 해당 예약을 찾고 상태만 변경 후 업데이트
+            // 기존 ReservationService의 updateReservation을 활용하려면 DTO가 필요
+            ReservationEntity reservationEntity = reservationService.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예약입니다. ID: " + id));
 
-            // Entity의 상태만 변경하고 업데이트 서비스 호출
-            reservationEntity.setStatus(status);
-            // 상태 변경만 하는 경우 DTO 변환 없이 Entity를 직접 넘겨도 될 수 있으나,
-            // updateReservation 서비스가 DTO를 받도록 설계되었으므로 DTO로 변환 후 상태만 변경
             ReservationDTO reservationDTO = convertToDto(reservationEntity);
-            reservationDTO.setStatus(status); // 상태만 다시 설정 (convertToDto에서 복사된 기존 상태 위에 덮어씌움)
+            reservationDTO.setStatus(status); // 새로운 상태 설정
 
-            reservationService.updateReservation(id, reservationDTO); // 서비스 호출 시 String ID와 DTO 전달
+            reservationService.updateReservation(id, reservationDTO); // ID와 함께 업데이트된 DTO 전달
 
-            redirectAttributes.addFlashAttribute("successMessage", "예약 상태가 변경되었습니다.");
-            return "redirect:/reservations/admin"; // 관리자 목록으로 리다이렉트
+            redirectAttributes.addFlashAttribute("successMessage", "예약 ID '" + id + "'의 상태가 '" + status + "'(으)로 변경되었습니다.");
         } catch (IllegalArgumentException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
-            // 오류 발생 시 관리자 목록으로 리다이렉트 또는 상세/수정 폼으로 리다이렉트
-            return "redirect:/reservations/admin"; // 또는 "/reservations/admin/" + id + "/edit";
+            redirectAttributes.addFlashAttribute("errorMessage", "상태 변경 실패: " + e.getMessage());
         }
+        // 성공/실패 모두 관리자 목록으로 리다이렉트 또는 상세 페이지로
+        return "redirect:/reservations/admin"; // 또는 "redirect:/reservations/admin/" + id + "/edit";
     }
 
     // ReservationEntity를 ReservationDTO로 변환하는 헬퍼 메소드
-    // String ID 복사 로직 유지
     private ReservationDTO convertToDto(ReservationEntity entity) {
+        if (entity == null) {
+            return null; // 또는 빈 DTO 반환 new ReservationDTO();
+        }
         ReservationDTO dto = new ReservationDTO();
-        dto.setId(entity.getId()); // DTO에 String id 필드 있으므로 복사
+        dto.setId(entity.getId());
         dto.setUserId(entity.getUserId());
-        // Entity에 CourseEntity 객체가 있다면 ID를 DTO에 설정 (CourseEntity의 ID는 Long)
         if (entity.getCourse() != null) {
             dto.setCourseId(entity.getCourse().getId());
         }
         dto.setReservationDateTime(entity.getReservationDateTime());
-        dto.setStatus(entity.getStatus()); // DTO에 status 필드 있으므로 복사
+        dto.setStatus(entity.getStatus());
         dto.setName(entity.getName());
         dto.setPhoneNumber(entity.getPhoneNumber());
         return dto;
     }
-
-    // 참고: ReservationDTO -> ReservationEntity 변환은 서비스에서 처리하는 것이 일반적입니다.
 }
