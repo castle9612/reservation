@@ -47,7 +47,7 @@
 
     <hr style="margin-top: 30px;">
     <div class="d-flex justify-content-between">
-      <a th:href="@{/announcements}" class="btn btn-secondary">목록으로</a>
+      <a th:href="@{/announcement/list}" class="btn btn-secondary">목록으로</a>
       <div sec:authorize="hasRole('ADMIN')" class="btn-group-actions">
         <a th:href="@{/admin/announcements/{id}/edit(id=${announcement.id})}" class="btn btn-warning">수정</a>
         <form th:action="@{/admin/announcements/{id}/delete(id=${announcement.id})}" method="post" style="display:inline;" onsubmit="return confirm('정말로 이 공지사항을 삭제하시겠습니까?');">
@@ -59,7 +59,7 @@
   </div>
   <div th:unless="${announcement}" class="alert alert-warning">
     해당 공지사항을 찾을 수 없습니다.
-    <a th:href="@{/announcements}" class="btn btn-link">목록으로 돌아가기</a>
+    <a th:href="@{/announcement/list}" class="btn btn-link">목록으로 돌아가기</a>
   </div>
 </div>
 </body>

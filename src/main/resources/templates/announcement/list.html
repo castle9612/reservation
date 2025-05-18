@@ -37,7 +37,8 @@
     <tbody>
     <tr th:each="ann, iterStat : ${announcements}">
       <td th:text="${ann.id}"></td>
-      <td><a th:href="@{/announcements/{id}(id=${ann.id})}" th:text="${ann.title}"></a></td>
+      <!-- 아래 링크를 수정 -->
+      <td><a th:href="@{/announcement/detail/{id}(id=${ann.id})}" th:text="${ann.title}"></a></td>
       <td th:text="${#temporals.format(ann.createdAt, 'yyyy-MM-dd')}"></td>
       <td sec:authorize="hasRole('ADMIN')">
         <a th:href="@{/admin/announcements/{id}/edit(id=${ann.id})}" class="btn btn-sm btn-warning">수정</a>

@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Controller
 public class AnnouncementController {
@@ -29,23 +28,28 @@ public class AnnouncementController {
     }
 
     // 사용자용 공지사항 목록
-    @GetMapping("/announcements")
+    // 요청 URL: /announcement/list
+    // 실제 뷰 파일: templates/announcement/list.html
+    @GetMapping("/announcement/list")
     public String listAnnouncements(Model model) {
         List<AnnouncementEntity> announcements = announcementService.findAll();
         model.addAttribute("announcements", announcements);
-        return "announcement/list";
+        return "announcement/list"; // "templates/announcement/list.html"을 의미
     }
 
     // 사용자용 공지사항 상세
-    @GetMapping("/announcements/{id}")
+    // 요청 URL: /announcement/detail/{id}
+    // 실제 뷰 파일: templates/announcement_detail.html (가정)
+    @GetMapping("/announcement/detail/{id}")
     public String viewAnnouncement(@PathVariable Long id, Model model) {
         AnnouncementEntity announcement = announcementService.findById(id);
         if (announcement == null) {
             // 간단한 예외 처리 또는 오류 페이지로 리다이렉트
-            return "redirect:/announcements?error=Announcement not found";
+            return "redirect:/announcement/list?error=Announcement not found";
         }
         model.addAttribute("announcement", announcement);
-        return "announcement/detail";
+        // 만약 실제 뷰 파일이 "templates/announcement/detail.html" 이라면 "announcement/detail" 로 변경
+        return "announcement/detail"; // "templates/announcement_detail.html"을 의미
     }
 
     // --- 관리자 기능 ---
@@ -60,20 +64,23 @@ public class AnnouncementController {
             this.announcementService = announcementService;
         }
 
-        // 관리자용 공지사항 목록 (선택적, 사용자 목록과 동일한 뷰 사용 가능)
+        // 관리자용 공지사항 목록 -> 사용자용 목록 뷰를 재활용
+        // 요청 URL: /admin/announcements
+        // 실제 뷰 파일: templates/announcement/list.html
         @GetMapping
         public String adminListAnnouncements(Model model) {
             model.addAttribute("announcements", announcementService.findAll());
-            // 필요하다면 관리자용 별도 목록 뷰를 사용할 수 있음
-            // return "admin/announcement/list_admin";
-            return "redirect:/announcements"; // 사용자 목록으로 리다이렉트 또는 위와 같이 별도 뷰
+            // 사용자용 공지사항 목록 뷰를 반환하도록 수정
+            return "announcement/list";
         }
 
+        // 관리자용 공지사항 작성 폼
+        // 실제 뷰 파일: templates/admin_announcement_form.html (가정)
         @GetMapping("/new")
         public String showCreateForm(Model model) {
-            // th:object="${announcementDTO}"에 바인딩될 객체
             model.addAttribute("announcementDTO", new AnnouncementDTO());
-            return "admin/announcement_form";
+            // 만약 실제 뷰 파일이 "templates/admin/announcement_form.html" 이라면 "admin/announcement_form" 로 변경
+            return "admin/announcement_form"; // "templates/admin_announcement_form.html" 을 의미
         }
 
         @PostMapping
@@ -82,7 +89,8 @@ public class AnnouncementController {
                                          @RequestParam(name = "attachmentFiles", required = false) MultipartFile[] attachmentFiles,
                                          RedirectAttributes redirectAttributes) {
             if (bindingResult.hasErrors()) {
-                // 폼 유효성 검사 오류 시 다시 폼으로
+                // 실제 관리자 폼 뷰 파일 경로에 맞춰 수정
+                // 예: "admin/announcement_form" 또는 "admin_announcement_form"
                 return "admin/announcement_form";
             }
             try {
@@ -95,14 +103,16 @@ public class AnnouncementController {
                 redirectAttributes.addFlashAttribute("errorMessage", "공지사항 등록 중 오류 발생: " + e.getMessage());
                 return "redirect:/admin/announcements/new"; // 오류 시 새 작성 폼으로
             }
-            return "redirect:/announcements"; // 성공 시 공지사항 목록으로
+            return "redirect:/announcement/list"; // 성공 시 공지사항 목록으로
         }
 
+        // 관리자용 공지사항 수정 폼
+        // 실제 뷰 파일: templates/admin_announcement_form.html (가정, 생성 폼 재활용)
         @GetMapping("/{id}/edit")
         public String showEditForm(@PathVariable Long id, Model model) {
             AnnouncementEntity announcementEntity = announcementService.findById(id);
             if (announcementEntity == null) {
-                return "redirect:/announcements?error=Announcement not found";
+                return "redirect:/announcement/list?error=Announcement not found";
             }
             AnnouncementDTO announcementDTO = new AnnouncementDTO();
             announcementDTO.setId(announcementEntity.getId());
@@ -112,7 +122,9 @@ public class AnnouncementController {
             announcementDTO.setAttachmentPaths(announcementEntity.getAttachmentPaths());
 
             model.addAttribute("announcementDTO", announcementDTO);
-            return "admin/announcement_form"; // 생성/수정 폼 재활용
+            // 실제 관리자 폼 뷰 파일 경로에 맞춰 수정
+            // 예: "admin/announcement_form" 또는 "admin_announcement_form"
+            return "admin/announcement_form";
         }
 
         @PostMapping("/{id}/edit")
@@ -126,6 +138,8 @@ public class AnnouncementController {
                 // DTO에 기존 첨부파일 경로 다시 넣어주기 (폼에 표시하기 위함)
                 AnnouncementEntity currentEntity = announcementService.findById(id);
                 if(currentEntity != null) announcementDTO.setAttachmentPaths(currentEntity.getAttachmentPaths());
+                // 실제 관리자 폼 뷰 파일 경로에 맞춰 수정
+                // 예: "admin/announcement_form" 또는 "admin_announcement_form"
                 return "admin/announcement_form";
             }
             try {
@@ -138,7 +152,7 @@ public class AnnouncementController {
                 redirectAttributes.addFlashAttribute("errorMessage", "공지사항 수정 중 오류 발생: " + e.getMessage());
                 return "redirect:/admin/announcements/" + id + "/edit";
             }
-            return "redirect:/announcements/" + id; // 수정 후 상세 페이지로
+            return "redirect:/announcement/detail/" + id; // 수정 후 상세 페이지로
         }
 
 
@@ -150,7 +164,7 @@ public class AnnouncementController {
             } catch (Exception e) {
                 redirectAttributes.addFlashAttribute("errorMessage", "공지사항 삭제 중 오류가 발생했습니다.");
             }
-            return "redirect:/announcements";
+            return "redirect:/announcement/list"; // 삭제 후 공지사항 목록으로
         }
 
         @PostMapping("/uploadSummernoteImageFile")
