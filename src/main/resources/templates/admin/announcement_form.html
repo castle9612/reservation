@@ -49,9 +49,21 @@
     .current-attachments-list a { margin-right: 10px; }
     .current-attachments-list button { margin-left: auto; /* 버튼을 오른쪽으로 밀착 */ }
 
-    .note-editor.note-frame {
-      border: 1px solid #ddd; /* Summernote 테두리 */
+    /* --- Summernote 테두리 제거 --- */
+    /*#main-content .note-editor.note-frame {*/
+    /*  border: none !important; !* Summernote 편집기 전체 프레임 테두리 제거 *!*/
+    /*  box-shadow: none !important; !* Summernote 포커스 시 그림자도 제거 *!*/
+    /*}*/
+
+    /* Summernote 툴바와 편집 영역 사이의 구분선도 제거하고 싶다면 아래 주석 해제 */
+    /*
+    #main-content .note-toolbar {
+        border-bottom: none !important;
     }
+    */
+    /* --- Summernote 테두리 제거 끝 --- */
+
+
     .text-danger.small { font-size: 0.875em; } /* 유효성 검사 메시지용 */
 
     /* 부트스트랩 버튼 스타일 (기본 레이아웃에 없을 경우 대비) */
@@ -69,15 +81,18 @@
     .btn-outline-danger { color: #dc3545; border-color: #dc3545; }
     .btn-outline-danger:hover { color: #fff; background-color: #dc3545; border-color: #dc3545; }
     .btn-sm { padding: .25rem .5rem; font-size: .875rem; line-height: 1.5; border-radius: .2rem; }
-    .ms-2 { margin-left: .5rem !important; }
-    .me-2 { margin-right: .5rem !important; }
+
+    /* Bootstrap 4 margin utilities */
+    .ml-2 { margin-left: .5rem !important; }
+    .mr-2 { margin-right: .5rem !important; }
     .mt-4 { margin-top: 1.5rem !important; }
     .d-flex { display: flex !important; }
     .justify-content-end { justify-content: flex-end !important; }
   </style>
 </head>
 <body>
-<div id="main-content"> <!-- 레이아웃에서 main-content ID를 사용한다고 가정 -->
+<!-- ... 나머지 HTML 코드는 동일 ... -->
+<div id="main-content">
   <h1 th:text="${announcementDTO.id == null ? '새 공지사항 작성' : '공지사항 수정'}"></h1>
 
   <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
@@ -95,7 +110,7 @@
         <p th:each="err : ${#fields.globalErrors()}" th:text="${err}" class="alert alert-danger" role="alert"></p>
       </div>
 
-      <div class="form-group"> <!-- Bootstrap 클래스 form-group 사용, mb-3는 Bootstrap 5 스타일 -->
+      <div class="form-group">
         <label for="title" class="form-label">제목:</label>
         <input type="text" id="title" class="form-control" th:field="*{title}" required
                th:classappend="${#fields.hasErrors('title')} ? 'is-invalid' : ''">
@@ -114,7 +129,6 @@
         <input type="file" id="newAttachmentFiles" name="newAttachmentFiles" class="form-control" multiple accept="*/*">
       </div>
 
-      <!-- 수정 모드이고 기존 첨부 파일이 있을 경우 표시 -->
       <div th:if="*{id != null && attachmentPaths != null && !attachmentPaths.isEmpty()}" class="form-group">
         <label class="form-label">기존 첨부 파일:</label>
         <ul class="list-unstyled current-attachments-list" id="current-attachments">
@@ -129,31 +143,30 @@
           </li>
         </ul>
         <div id="deleted-paths-container">
-          <!-- 삭제할 파일 경로를 위한 숨겨진 input 필드가 여기에 추가됩니다. -->
         </div>
       </div>
 
       <div class="form-group text-right mt-4 d-flex justify-content-end">
-        <a th:href="@{/announcement/list}" class="btn btn-secondary me-2">취소</a>
+        <a th:href="@{/announcement/list}" class="btn btn-secondary mr-2">취소</a>
         <button type="submit" class="btn btn-primary">저장하기</button>
       </div>
     </form>
   </th:block>
+
+  <!-- ========== 스크립트 로드 순서 중요 ========== -->
+  <!-- jQuery, Popper.js, Bootstrap JS, Summernote JS, Summernote 언어팩 순서대로 로드 -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/summernote/0.8.18/lang/summernote-ko-KR.min.js"></script>
-  <script>
-    alert('Pure JavaScript test: This script tag IS EXECUTING!');
-    console.log('Pure JavaScript console log: This script tag IS EXECUTING!');
-  </script>
+
   <script th:inline="javascript">
     /*<![CDATA[*/
+    // ... 기존 JavaScript 코드는 동일 ...
     $(document).ready(function() {
-      console.log("Document ready! Attempting to initialize Summernote and event handlers.");
-      alert("Document ready! (테스트용 alert, 확인 후 삭제하세요)"); // (0) Document ready 확인
+      console.log("Document ready! Initializing Summernote and event handlers.");
 
-      // Summernote 초기화
       try {
         $('#summernote-content').summernote({
           height: 350,
@@ -171,14 +184,14 @@
             ['para', ['ul', 'ol', 'paragraph']],
             ['height', ['height']],
             ['table', ['table']],
-            ['insert', ['link', 'picture', 'video']], // 'picture'가 Summernote 이미지 업로드 버튼
+            ['insert', ['link', 'picture', 'video']],
             ['view', ['fullscreen', 'codeview', 'help']]
           ],
           callbacks: {
             onImageUpload : function(files) {
               console.log("Summernote onImageUpload triggered.");
               for (var i = 0; i < files.length; i++) {
-                uploadSummernoteImageFile(files[i], this); // 'this'는 에디터 인스턴스
+                uploadSummernoteImageFile(files[i], this);
               }
             },
             onPaste: function (e) {
@@ -186,9 +199,8 @@
               if (clipboardData && clipboardData.items && clipboardData.items.length) {
                 var item = clipboardData.items[0];
                 if (item.kind === 'file' && item.type.indexOf('image/') !== -1) {
-                  e.preventDefault(); // 기본 붙여넣기 동작 방지 (base64로 이미지 삽입되는 것 등)
-                  // 필요하다면 여기서 onImageUpload처럼 파일 업로드 로직을 호출할 수 있습니다.
-                  // uploadSummernoteImageFile(item.getAsFile(), this);
+                  e.preventDefault();
+                  console.log("Image paste prevented. Consider implementing paste upload or use the upload button.");
                 }
               }
             }
@@ -197,62 +209,44 @@
         console.log("Summernote initialized successfully.");
       } catch (e) {
         console.error("Summernote initialization failed:", e);
-        alert("Summernote 초기화에 실패했습니다. 콘솔을 확인해주세요.");
       }
 
-
-      // === 첨부파일 삭제 버튼 이벤트 핸들러 ===
-      console.log("Attempting to register 'remove attachment' button click handler."); // (1) 핸들러 등록 시도 로그
-
       $('#current-attachments').on('click', '.remove-attachment-btn', function(event) {
-        event.preventDefault(); // 버튼의 기본 동작 방지
-        console.log("Remove button clicked! (event delegation)"); // (2) 버튼 클릭 시 로그
-
-        const button = $(this); // 클릭된 버튼 jQuery 객체
+        event.preventDefault();
+        const button = $(this);
         const filePath = button.data('path');
         const elementId = button.data('element-id');
-
-        console.log("File Path:", filePath);
-        console.log("Element ID:", elementId);
-        console.log("Clicked button data attributes:", button.data());
-
 
         if (filePath && elementId) {
           removeAttachment(filePath, elementId);
         } else {
-          console.error("Could not get filePath or elementId. Check button's data-* attributes.");
-          console.log("Clicked button HTML:", button.prop('outerHTML'));
+          console.error("Could not get filePath or elementId. Check button's data-* attributes in HTML.");
         }
       });
-
-      // 페이지 로드 시 기존 첨부파일 목록 및 버튼 상태 확인 로그
-      if ($('#current-attachments li').length > 0) {
-        console.log("Existing attachments list found. Number of items: " + $('#current-attachments li').length);
-        $('#current-attachments .remove-attachment-btn').each(function(index, btn) {
-          console.log("Button " + index + " data:", $(btn).data());
-        });
-      } else {
-        console.log("No existing attachments list found.");
-      }
-
-    }); // $(document).ready() 종료
+    });
 
     function uploadSummernoteImageFile(file, editor) {
-      console.log("uploadSummernoteImageFile called for file:", file.name);
       let data = new FormData();
       data.append("file", file);
-      const csrfToken = /*[[${_csrf.token}]]*/ $('meta[name="_csrf"]').attr('content') || /*[[${_csrf.token}]]*/ null;
-      const csrfHeader = /*[[${_csrf.headerName}]]*/ $('meta[name="_csrf_header"]').attr('content') || /*[[${_csrf.headerName}]]*/ null;
+
+      const csrfToken = /*[[${_csrf != null ? _csrf.token : null}]]*/ null;
+      const csrfHeader = /*[[${_csrf != null ? _csrf.headerName : null}]]*/ null;
+
+      const metaCsrfToken = $('meta[name="_csrf"]').attr('content');
+      const metaCsrfHeader = $('meta[name="_csrf_header"]').attr('content');
+
+      const finalCsrfToken = csrfToken || metaCsrfToken;
+      const finalCsrfHeader = csrfHeader || metaCsrfHeader;
 
       $.ajax({
         data : data,
         type : "POST",
-        url : /*[[@{/admin/announcements/uploadSummernoteImageFile}]]*/ '', // CSRF 토큰은 헤더로 전송
+        url : /*[[@{/admin/announcements/uploadSummernoteImageFile}]]*/ '/admin/announcements/uploadSummernoteImageFile',
         contentType : false,
         processData : false,
         beforeSend: function(xhr) {
-          if (csrfHeader && csrfToken) {
-            xhr.setRequestHeader(csrfHeader, csrfToken);
+          if (finalCsrfHeader && finalCsrfToken) {
+            xhr.setRequestHeader(finalCsrfHeader, finalCsrfToken);
           } else {
             console.warn("CSRF token or header not found for Summernote image upload.");
           }
@@ -260,30 +254,42 @@
         success : function(response) {
           if(response.url) {
             $(editor).summernote('insertImage', response.url);
-            console.log("Summernote image inserted:", response.url);
           } else if (response.error) {
             alert("Summernote 이미지 업로드 실패: " + response.error);
             console.error("Summernote image upload failed (server error):", response.error);
+          } else {
+            alert("Summernote 이미지 업로드 중 알 수 없는 응답을 받았습니다.");
+            console.error("Summernote image upload: Unknown response format", response);
           }
         },
         error: function(jqXHR, textStatus, errorThrown) {
-          console.error("Summernote image upload AJAX error:", textStatus, errorThrown, jqXHR.responseText);
-          alert("서버 오류로 Summernote 이미지 업로드에 실패했습니다. 콘솔을 확인하세요.");
+          console.error("Summernote image upload AJAX error. Status: " + jqXHR.status + ", TextStatus: " + textStatus + ", ErrorThrown: " + errorThrown, jqXHR.responseText);
+          alert("서버 오류로 Summernote 이미지 업로드에 실패했습니다. (HTTP Status: " + jqXHR.status + "). 콘솔을 확인하세요.");
         }
       });
     }
 
     function removeAttachment(filePath, elementId) {
-      console.log("removeAttachment function called. filePath:", filePath, "elementId:", elementId); // (3) removeAttachment 함수 호출 로그
       if (confirm("이 첨부파일을 삭제하시겠습니까? 이 작업은 저장 시 최종 반영됩니다.")) {
-        console.log("Deletion confirmed for elementId:", elementId);
-        $('#' + elementId).hide(); // 해당 <li> 요소를 숨김
-        let hiddenInput = '<input type="hidden" name="deletedAttachmentPaths" value="' + filePath + '">';
-        $('#deleted-paths-container').append(hiddenInput); // 숨겨진 input 추가
-        console.log("Hidden input added:", hiddenInput);
-      } else {
-        console.log("Deletion cancelled.");
+        $('#' + elementId).hide();
+
+        let escapedFilePath = escapeHtml(filePath);
+        let hiddenInput = '<input type="hidden" name="deletedAttachmentPaths" value="' + escapedFilePath + '">';
+
+        $('#deleted-paths-container').append(hiddenInput);
       }
+    }
+
+    function escapeHtml(unsafe) {
+      if (unsafe === null || typeof unsafe === 'undefined') {
+        return '';
+      }
+      return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;")
     }
     /*]]>*/
   </script>
