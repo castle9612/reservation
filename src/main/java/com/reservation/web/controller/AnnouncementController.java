@@ -3,6 +3,8 @@ package com.reservation.web.controller;
 import com.reservation.web.dto.AnnouncementDTO;
 import com.reservation.web.entity.AnnouncementEntity;
 import com.reservation.web.service.AnnouncementService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
@@ -12,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import jakarta.validation.Valid; // @Valid 사용 시
+import jakarta.validation.Valid;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -20,110 +22,104 @@ import java.util.Map;
 
 @Controller
 public class AnnouncementController {
-
+    private static final Logger logger = LoggerFactory.getLogger(AnnouncementController.class);
     private final AnnouncementService announcementService;
 
     public AnnouncementController(AnnouncementService announcementService) {
         this.announcementService = announcementService;
     }
 
-    // 사용자용 공지사항 목록
-    // 요청 URL: /announcement/list
-    // 실제 뷰 파일: templates/announcement/list.html
     @GetMapping("/announcement/list")
     public String listAnnouncements(Model model) {
         List<AnnouncementEntity> announcements = announcementService.findAll();
         model.addAttribute("announcements", announcements);
-        return "announcement/list"; // "templates/announcement/list.html"을 의미
+        return "announcement/list";
     }
 
-    // 사용자용 공지사항 상세
-    // 요청 URL: /announcement/detail/{id}
-    // 실제 뷰 파일: templates/announcement_detail.html (가정)
     @GetMapping("/announcement/detail/{id}")
-    public String viewAnnouncement(@PathVariable Long id, Model model) {
+    public String viewAnnouncement(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         AnnouncementEntity announcement = announcementService.findById(id);
         if (announcement == null) {
-            // 간단한 예외 처리 또는 오류 페이지로 리다이렉트
-            return "redirect:/announcement/list?error=Announcement not found";
+            logger.warn("Announcement not found with id: {}", id);
+            redirectAttributes.addFlashAttribute("errorMessage", "요청하신 공지사항을 찾을 수 없습니다 (ID: " + id + ")");
+            return "redirect:/announcement/list";
         }
         model.addAttribute("announcement", announcement);
-        // 만약 실제 뷰 파일이 "templates/announcement/detail.html" 이라면 "announcement/detail" 로 변경
-        return "announcement/detail"; // "templates/announcement_detail.html"을 의미
+        // Entity에 originalAttachmentNames가 있으므로, detail.html에서 직접 사용 가능
+        return "announcement/detail";
     }
 
-    // --- 관리자 기능 ---
     @Controller
     @RequestMapping("/admin/announcements")
     @PreAuthorize("hasRole('ADMIN')")
     public static class AdminAnnouncementController {
-
+        private static final Logger adminLogger = LoggerFactory.getLogger(AdminAnnouncementController.class);
         private final AnnouncementService announcementService;
 
         public AdminAnnouncementController(AnnouncementService announcementService) {
             this.announcementService = announcementService;
         }
 
-        // 관리자용 공지사항 목록 -> 사용자용 목록 뷰를 재활용
-        // 요청 URL: /admin/announcements
-        // 실제 뷰 파일: templates/announcement/list.html
         @GetMapping
         public String adminListAnnouncements(Model model) {
             model.addAttribute("announcements", announcementService.findAll());
-            // 사용자용 공지사항 목록 뷰를 반환하도록 수정
             return "announcement/list";
         }
 
-        // 관리자용 공지사항 작성 폼
-        // 실제 뷰 파일: templates/admin_announcement_form.html (가정)
         @GetMapping("/new")
         public String showCreateForm(Model model) {
-            model.addAttribute("announcementDTO", new AnnouncementDTO());
-            // 만약 실제 뷰 파일이 "templates/admin/announcement_form.html" 이라면 "admin/announcement_form" 로 변경
-            return "admin/announcement_form"; // "templates/admin_announcement_form.html" 을 의미
+            if (!model.containsAttribute("announcementDTO")) {
+                model.addAttribute("announcementDTO", new AnnouncementDTO());
+            }
+            return "admin/announcement_form";
         }
 
         @PostMapping
         public String createAnnouncement(@Valid @ModelAttribute("announcementDTO") AnnouncementDTO announcementDTO,
                                          BindingResult bindingResult,
-                                         @RequestParam(name = "attachmentFiles", required = false) MultipartFile[] attachmentFiles,
-                                         RedirectAttributes redirectAttributes) {
+                                         @RequestParam(name = "newAttachmentFiles", required = false) MultipartFile[] newAttachmentFiles,
+                                         RedirectAttributes redirectAttributes,
+                                         Model model) {
+            adminLogger.info("Attempting to create announcement. Title: {}", announcementDTO.getTitle());
             if (bindingResult.hasErrors()) {
-                // 실제 관리자 폼 뷰 파일 경로에 맞춰 수정
-                // 예: "admin/announcement_form" 또는 "admin_announcement_form"
+                adminLogger.warn("Validation errors while creating announcement: {}", bindingResult.getAllErrors());
+                // DTO는 @ModelAttribute로 이미 모델에 추가됨
                 return "admin/announcement_form";
             }
             try {
                 AnnouncementEntity announcement = new AnnouncementEntity();
                 announcement.setTitle(announcementDTO.getTitle());
                 announcement.setContent(announcementDTO.getContent());
-                announcementService.save(announcement, attachmentFiles);
+                announcementService.save(announcement, newAttachmentFiles);
                 redirectAttributes.addFlashAttribute("successMessage", "공지사항이 성공적으로 등록되었습니다.");
+                adminLogger.info("Announcement created successfully. ID: {}", announcement.getId());
+                return "redirect:/announcement/list";
             } catch (IOException e) {
-                redirectAttributes.addFlashAttribute("errorMessage", "공지사항 등록 중 오류 발생: " + e.getMessage());
-                return "redirect:/admin/announcements/new"; // 오류 시 새 작성 폼으로
+                adminLogger.error("IOException while creating announcement", e);
+                model.addAttribute("errorMessage", "공지사항 등록 중 파일 처리 오류 발생: " + e.getMessage());
+                return "admin/announcement_form";
             }
-            return "redirect:/announcement/list"; // 성공 시 공지사항 목록으로
         }
 
-        // 관리자용 공지사항 수정 폼
-        // 실제 뷰 파일: templates/admin_announcement_form.html (가정, 생성 폼 재활용)
         @GetMapping("/{id}/edit")
-        public String showEditForm(@PathVariable Long id, Model model) {
-            AnnouncementEntity announcementEntity = announcementService.findById(id);
-            if (announcementEntity == null) {
-                return "redirect:/announcement/list?error=Announcement not found";
+        public String showEditForm(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
+            adminLogger.info("Showing edit form for announcement id: {}", id);
+            if (!model.containsAttribute("announcementDTO")) {
+                AnnouncementEntity announcementEntity = announcementService.findById(id);
+                if (announcementEntity == null) {
+                    adminLogger.warn("Announcement not found for edit with id: {}", id);
+                    redirectAttributes.addFlashAttribute("errorMessage", "수정할 공지사항을 찾을 수 없습니다 (ID: " + id + ")");
+                    return "redirect:/admin/announcements"; // 관리자 목록으로
+                }
+                AnnouncementDTO dto = new AnnouncementDTO();
+                dto.setId(announcementEntity.getId());
+                dto.setTitle(announcementEntity.getTitle());
+                dto.setContent(announcementEntity.getContent());
+                dto.setCreatedAt(announcementEntity.getCreatedAt());
+                dto.setAttachmentPaths(announcementEntity.getAttachmentPaths());
+                dto.setOriginalAttachmentNames(announcementEntity.getOriginalAttachmentNames()); // 원본 파일명 추가
+                model.addAttribute("announcementDTO", dto);
             }
-            AnnouncementDTO announcementDTO = new AnnouncementDTO();
-            announcementDTO.setId(announcementEntity.getId());
-            announcementDTO.setTitle(announcementEntity.getTitle());
-            announcementDTO.setContent(announcementEntity.getContent());
-            announcementDTO.setCreatedAt(announcementEntity.getCreatedAt());
-            announcementDTO.setAttachmentPaths(announcementEntity.getAttachmentPaths());
-
-            model.addAttribute("announcementDTO", announcementDTO);
-            // 실제 관리자 폼 뷰 파일 경로에 맞춰 수정
-            // 예: "admin/announcement_form" 또는 "admin_announcement_form"
             return "admin/announcement_form";
         }
 
@@ -133,49 +129,85 @@ public class AnnouncementController {
                                          BindingResult bindingResult,
                                          @RequestParam(name = "newAttachmentFiles", required = false) MultipartFile[] newAttachmentFiles,
                                          @RequestParam(name = "deletedAttachmentPaths", required = false) List<String> deletedAttachmentPaths,
-                                         RedirectAttributes redirectAttributes) {
+                                         RedirectAttributes redirectAttributes,
+                                         Model model) {
+            adminLogger.info("Attempting to update announcement id: {}", id);
+            announcementDTO.setId(id); // PathVariable ID를 DTO에 명시적으로 설정
+
             if (bindingResult.hasErrors()) {
-                // DTO에 기존 첨부파일 경로 다시 넣어주기 (폼에 표시하기 위함)
-                AnnouncementEntity currentEntity = announcementService.findById(id);
-                if(currentEntity != null) announcementDTO.setAttachmentPaths(currentEntity.getAttachmentPaths());
-                // 실제 관리자 폼 뷰 파일 경로에 맞춰 수정
-                // 예: "admin/announcement_form" 또는 "admin_announcement_form"
+                adminLogger.warn("Validation errors while updating announcement id {}: {}", id, bindingResult.getAllErrors());
+                // 유효성 오류 시, 뷰에 필요한 정보를 다시 채워줘야 함
+                AnnouncementEntity currentEntity = announcementService.findById(id); // DB에서 최신 정보 조회
+                if (currentEntity != null) {
+                    announcementDTO.setAttachmentPaths(currentEntity.getAttachmentPaths()); // DTO 업데이트
+                    announcementDTO.setOriginalAttachmentNames(currentEntity.getOriginalAttachmentNames()); // DTO 업데이트
+                    if (announcementDTO.getCreatedAt() == null) {
+                        announcementDTO.setCreatedAt(currentEntity.getCreatedAt());
+                    }
+                } else { // 혹시나 수정 중 원본이 삭제된 경우
+                    redirectAttributes.addFlashAttribute("errorMessage", "수정하려는 공지사항을 찾을 수 없습니다 (ID: " + id + ").");
+                    return "redirect:/admin/announcements";
+                }
                 return "admin/announcement_form";
             }
             try {
-                AnnouncementEntity announcementToUpdate = new AnnouncementEntity();
+                AnnouncementEntity announcementToUpdate = new AnnouncementEntity(); // 업데이트할 데이터만 담을 객체
                 announcementToUpdate.setTitle(announcementDTO.getTitle());
                 announcementToUpdate.setContent(announcementDTO.getContent());
+                // 서비스의 update 메소드에서 id로 기존 엔티티를 찾아 업데이트 함
+
                 announcementService.update(id, announcementToUpdate, newAttachmentFiles, deletedAttachmentPaths);
                 redirectAttributes.addFlashAttribute("successMessage", "공지사항이 성공적으로 수정되었습니다.");
+                adminLogger.info("Announcement updated successfully. ID: {}", id);
+                return "redirect:/announcement/detail/" + id;
+            } catch (IllegalArgumentException e) { // ID로 못찾을 때
+                adminLogger.warn("Update failed for announcement id {}: {}", id, e.getMessage());
+                model.addAttribute("errorMessage", e.getMessage());
+                AnnouncementEntity currentEntity = announcementService.findById(id);
+                if (currentEntity != null) {
+                    announcementDTO.setAttachmentPaths(currentEntity.getAttachmentPaths());
+                    announcementDTO.setOriginalAttachmentNames(currentEntity.getOriginalAttachmentNames());
+                    if (announcementDTO.getCreatedAt() == null) announcementDTO.setCreatedAt(currentEntity.getCreatedAt());
+                }
+                return "admin/announcement_form";
             } catch (IOException e) {
-                redirectAttributes.addFlashAttribute("errorMessage", "공지사항 수정 중 오류 발생: " + e.getMessage());
-                return "redirect:/admin/announcements/" + id + "/edit";
+                adminLogger.error("IOException while updating announcement id {}", id, e);
+                model.addAttribute("errorMessage", "공지사항 수정 중 파일 처리 오류 발생: " + e.getMessage());
+                AnnouncementEntity currentEntity = announcementService.findById(id);
+                if (currentEntity != null) {
+                    announcementDTO.setAttachmentPaths(currentEntity.getAttachmentPaths());
+                    announcementDTO.setOriginalAttachmentNames(currentEntity.getOriginalAttachmentNames());
+                    if (announcementDTO.getCreatedAt() == null) announcementDTO.setCreatedAt(currentEntity.getCreatedAt());
+                }
+                return "admin/announcement_form";
             }
-            return "redirect:/announcement/detail/" + id; // 수정 후 상세 페이지로
         }
-
 
         @PostMapping("/{id}/delete")
         public String deleteAnnouncement(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+            adminLogger.info("Attempting to delete announcement id: {}", id);
             try {
-                announcementService.delete(id);
+                announcementService.delete(id); // 서비스의 delete는 내부적으로 파일 삭제도 처리
                 redirectAttributes.addFlashAttribute("successMessage", "공지사항이 삭제되었습니다.");
-            } catch (Exception e) {
-                redirectAttributes.addFlashAttribute("errorMessage", "공지사항 삭제 중 오류가 발생했습니다.");
+                adminLogger.info("Announcement deleted successfully. ID: {}", id);
+            } catch (Exception e) { // 서비스에서 특정 예외를 던지도록 수정 가능 (예: EntityNotFoundException)
+                adminLogger.error("Error deleting announcement id {}", id, e);
+                redirectAttributes.addFlashAttribute("errorMessage", "공지사항 삭제 중 오류가 발생했습니다: " + e.getMessage());
             }
-            return "redirect:/announcement/list"; // 삭제 후 공지사항 목록으로
+            return "redirect:/announcement/list";
         }
 
         @PostMapping("/uploadSummernoteImageFile")
         @ResponseBody
         public ResponseEntity<?> uploadSummernoteImageFile(@RequestParam("file") MultipartFile multipartFile) {
+            adminLogger.info("Uploading summernote image file: {}", multipartFile.getOriginalFilename());
             Map<String, String> response = new HashMap<>();
             try {
                 String fileUrl = announcementService.storeSummernoteImage(multipartFile);
                 response.put("url", fileUrl);
                 return ResponseEntity.ok(response);
             } catch (IOException e) {
+                adminLogger.error("Failed to upload summernote image file", e);
                 response.put("error", "이미지 업로드 실패: " + e.getMessage());
                 return ResponseEntity.status(500).body(response);
             }
