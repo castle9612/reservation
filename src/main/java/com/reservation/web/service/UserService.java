@@ -63,11 +63,9 @@ public class UserService implements UserDetailsService { // ⬅️ UserDetailsSe
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
             return null;
         }
-        // UserDetails 객체를 Principal로 사용하는 경우
         if (authentication.getPrincipal() instanceof UserDetails) {
             return ((UserDetails) authentication.getPrincipal()).getUsername();
         }
-        // 단순 문자열 이름을 Principal로 사용하는 경우 (기본 설정)
         return authentication.getName();
     }
 }

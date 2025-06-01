@@ -5,7 +5,7 @@ import com.reservation.web.entity.StaffEntity;
 import com.reservation.web.repository.StaffRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // 조회만 하는 경우엔 필수는 아님
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,7 +16,6 @@ public class StaffService {
 
     private final StaffRepository staffRepository;
 
-    // Entity를 DTO로 변환
     private StaffDTO convertEntityToDTO(StaffEntity staffEntity) {
         return new StaffDTO(
                 staffEntity.getId(),
@@ -30,11 +29,10 @@ public class StaffService {
         return staffRepository.findAll();
     }
 
-    // StaffService.java
     @Transactional(readOnly = true)
     public List<StaffDTO> findAllStaff() {
         return staffRepository.findAll().stream()
-                .map(this::convertEntityToDTO) // convertEntityToDTO는 StaffEntity -> StaffDTO 변환
+                .map(this::convertEntityToDTO)
                 .collect(Collectors.toList());
     }
 
@@ -52,7 +50,6 @@ public class StaffService {
         return convertEntityToDTO(staffEntity);
     }
 
-    // Staff 정보 저장/수정 (필요한 경우)
     @Transactional
     public StaffEntity saveStaff(StaffDTO staffDTO) {
         StaffEntity staffEntity;
@@ -67,13 +64,11 @@ public class StaffService {
         return staffRepository.save(staffEntity);
     }
 
-    // Staff 삭제 (필요한 경우)
     @Transactional
     public void deleteStaff(Long id) {
         if (!staffRepository.existsById(id)) {
             throw new IllegalArgumentException("삭제할 직원을 찾을 수 없습니다: " + id);
         }
-        // 연관된 Course가 있다면 어떻게 처리할지 정책 필요 (예: null로 만들거나, 삭제 못하게 하거나)
         staffRepository.deleteById(id);
     }
 }

@@ -163,18 +163,15 @@ public class ReservationService {
                 .collect(Collectors.toList());
     }
 
-    // Entity를 DTO로 변환하는 헬퍼 메소드 (컨트롤러에서 필요 시 사용)
-    // DTO 변환 로직은 String ID에 맞게 유지
     private ReservationDTO convertToDto(ReservationEntity entity) {
         ReservationDTO dto = new ReservationDTO();
-        dto.setId(entity.getId()); // DTO에 String id 필드 있으므로 복사
+        dto.setId(entity.getId());
         dto.setUserId(entity.getUserId());
-        // Entity에 CourseEntity 객체가 있다면 ID를 DTO에 설정
         if (entity.getCourse() != null) {
-            dto.setCourseId(entity.getCourse().getId()); // CourseEntity의 ID는 Long
+            dto.setCourseId(entity.getCourse().getId());
         }
         dto.setReservationDateTime(entity.getReservationDateTime());
-        dto.setStatus(entity.getStatus()); // DTO에 status 필드 있으므로 복사
+        dto.setStatus(entity.getStatus());
         dto.setName(entity.getName());
         dto.setPhoneNumber(entity.getPhoneNumber());
         return dto;

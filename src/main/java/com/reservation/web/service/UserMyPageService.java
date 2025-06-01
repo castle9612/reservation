@@ -32,13 +32,12 @@ public class UserMyPageService {
 
         UserMyPageDTO dto = new UserMyPageDTO();
         dto.setUserId(user.getUserId());
-        dto.setUserName(user.getName()); // UserEntity의 getName() 사용
-        dto.setUserEmail(user.getEmail()); // UserEntity의 getEmail() 사용
+        dto.setUserName(user.getName());
+        dto.setUserEmail(user.getEmail());
         dto.setPhoneNumber(user.getPhoneNumber());
         dto.setPackageCount(user.getPackageCount());
         dto.setMemo(user.getMemo());
         dto.setReservations(reservations);
-        // 비밀번호 필드는 DTO 생성 시 UserEntity에서 가져오지 않음 (보안 및 수정 용도)
         return dto;
     }
 
@@ -47,13 +46,11 @@ public class UserMyPageService {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
 
-        // ⬇️ 이 부분을 수정해야 합니다.
-        user.setName(userMyPageDTO.getUserName());     // 변경: getName() -> getUserName()
+        user.setName(userMyPageDTO.getUserName());
         user.setPhoneNumber(userMyPageDTO.getPhoneNumber());
-        user.setEmail(userMyPageDTO.getUserEmail());   // 변경: getEmail() -> getUserEmail()
+        user.setEmail(userMyPageDTO.getUserEmail());
 
         if (userMyPageDTO.getPassword() != null && !userMyPageDTO.getPassword().isEmpty()) {
-            // 현재 비밀번호와 다른 경우에만 암호화하여 저장 (선택적 최적화)
             if (!passwordEncoder.matches(userMyPageDTO.getPassword(), user.getPassword())) {
                 user.setPassword(passwordEncoder.encode(userMyPageDTO.getPassword()));
             }
@@ -62,13 +59,13 @@ public class UserMyPageService {
         userRepository.save(user);
     }
 
-    public List<ReservationEntity> getUserReservations(String userId) { // 파라미터명 username -> userId
-        UserEntity user = userRepository.findById(userId) // findById 사용
+    public List<ReservationEntity> getUserReservations(String userId) {
+        UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
         return reservationRepository.findByUserId(user.getUserId());
     }
 
-    @Transactional // updateReservation -> updateMyReservationTime 등 명확한 이름 고려
+    @Transactional
     public void updateReservation(String reservationId, String newDateTime) {
         ReservationEntity reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다: " + reservationId));
