@@ -60,7 +60,11 @@
             <td th:text="${#numbers.formatDecimal(course.memberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></td>
             <td th:text="${#numbers.formatDecimal(course.nonMemberPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></td>
             <td>
-                <a th:href="@{/courses/{id}(id=${course.id})}" class="btn btn-sm btn-info">상세/예약</a>
+                <!-- 로그인한 사용자 -->
+                <a sec:authorize="isAuthenticated()" th:href="@{/courses/{id}(id=${course.id})}" class="btn btn-sm btn-info">상세/예약</a>
+                <!-- 비로그인 사용자 (익명 사용자) -->
+                <a sec:authorize="isAnonymous()" th:href="@{/reservations/new/non-member(courseId=${course.id})}" class="btn btn-sm btn-success">바로 예약 (비회원)</a>
+
                 <th:block sec:authorize="hasRole('ADMIN')">
                     <a th:href="@{/courses/edit/{id}(id=${course.id})}" class="btn btn-sm btn-warning ml-1">수정</a>
                     <form th:action="@{/courses/delete/{id}(id=${course.id})}" method="post" class="d-inline ml-1"

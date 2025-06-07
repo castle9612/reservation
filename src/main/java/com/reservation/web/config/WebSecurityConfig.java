@@ -53,8 +53,10 @@ public class WebSecurityConfig {
                                 "/", "/index", "/login", "/signup",
                                 "/announcement/list", "/announcement/detail/**", // 상세 페이지는 ID가 붙으므로 /**
                                 "/courses", // 코스 안내
-                                "/reservations/search" // 비회원 예약 조회
-                        ).permitAll()
+                                "/courses/{id}",
+                                "/reservations/search", // 비회원 예약 조회
+                                "/reservations/new/non-member"
+                                ).permitAll()
                         .requestMatchers("/reservations").authenticated() // "내 예약"은 인증된 사용자만
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()

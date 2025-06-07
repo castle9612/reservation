@@ -66,7 +66,7 @@ public class ReservationController {
         }
         model.addAttribute("reservationDTO", reservationDTO); // 폼 객체 이름은 DTO로 유지
         model.addAttribute("courses", courseService.findAllCoursesWithStaff());
-        return "reservation/new_non-member";
+        return "reservation/new_non_member";
     }
 
     /**
