@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
+<head>
+  <title>비회원 예약 조회 - 예약 시스템</title>
+</head>
+<body>
+<div id="main-content">
+  <h1>비회원 예약 조회</h1>
+  <p>예약 시 사용하신 연락처를 입력해주세요.</p>
+
+  <!-- 전화번호 입력 폼: POST 방식으로 /reservations/search 경로로 전송 -->
+  <form th:action="@{/reservations/search}" method="post" class="mt-3">
+    <div class="form-group mb-3">
+      <label for="phoneNumber" class="form-label">연락처:</label>
+      <input type="text" id="phoneNumber" name="phoneNumber" class="form-control"
+             placeholder="'-' 없이 숫자만 입력 (예: 01012345678)" required
+             pattern="[0-9]{10,11}" title="10자리 또는 11자리 숫자를 입력해주세요.">
+    </div>
+    <button type="submit" class="btn btn-primary">조회하기</button>
+  </form>
+
+  <!-- th:if 사용 시 Model에 추가된 에러 메시지를 표시할 수 있습니다.
+       예: redirectAttributes.addFlashAttribute("searchError", "메시지");
+  -->
+  <div th:if="${searchError}" class="alert alert-danger mt-3">
+    <p th:text="${searchError}"></p>
+  </div>
+</div>
+</body>
+</html>

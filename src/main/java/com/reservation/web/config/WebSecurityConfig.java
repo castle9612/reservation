@@ -55,7 +55,8 @@ public class WebSecurityConfig {
                                 "/courses", // 코스 안내
                                 "/courses/{id}",
                                 "/reservations/search", // 비회원 예약 조회
-                                "/reservations/new/non-member"
+                                "/reservations/new/non-member",
+                                "/reservations/save"
                                 ).permitAll()
                         .requestMatchers("/reservations").authenticated() // "내 예약"은 인증된 사용자만
                         .requestMatchers("/admin/**").hasRole("ADMIN")

@@ -33,6 +33,34 @@ public class ReservationController {
         this.userService = userService;
     }
 
+    @GetMapping("/search")
+    public String showNonMemberSearchInputForm(Model model) { // Model 추가 (혹시 폼에 전달할 초기 데이터가 있다면)
+        // 여기에 phoneNumber 필드만 있는 간단한 DTO를 모델에 추가하여 th:object를 사용할 수도 있습니다.
+        // 예: model.addAttribute("searchRequest", new NonMemberSearchRequestDTO());
+        return "reservation/nonMemberSearchInputForm"; // 새로 만든 입력 폼 페이지 반환
+    }
+
+    /**
+     * 비회원 예약을 전화번호로 검색하고 결과를 보여줍니다. (POST 요청)
+     * 입력 폼에서 "조회하기" 버튼 클릭 시 이 메소드가 호출됩니다.
+     */
+    @PostMapping("/search")
+    public String searchNonMemberReservationsByPhoneNumber(@RequestParam("phoneNumber") String phoneNumber, Model model) {
+        if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+            model.addAttribute("searchError", "전화번호를 입력해주세요.");
+            return "reservation/nonMemberSearchInputForm"; // 에러 메시지와 함께 다시 입력 폼으로
+        }
+
+        List<ReservationDTO> reservationDTOs = reservationService.findByPhoneNumber(phoneNumber)
+                .stream()
+                .map(this::convertToDto) // Entity -> DTO 변환
+                .collect(Collectors.toList());
+
+        model.addAttribute("reservations", reservationDTOs);
+        model.addAttribute("searchedPhoneNumber", phoneNumber); // 검색한 번호도 전달 (결과 페이지에서 표시용)
+        return "reservation/search_non_member"; // 기존 결과 페이지 (search_non_member.html) 반환
+    }
+
     // ... (showMemberReservationForm, showNonMemberReservationForm, saveReservation 메소드는 이전과 동일하게 유지)
     /**
      * 회원 예약 폼
@@ -147,23 +175,23 @@ public class ReservationController {
     /**
      * 비회원 예약 검색 폼
      */
-    @GetMapping("/search")
-    public String showNonMemberSearchForm() {
-        return "reservation/search_non_member";
-    }
+//    @GetMapping("/search")
+//    public String showNonMemberSearchForm() {
+//        return "reservation/search_non_member";
+//    }
 
     /**
      * 비회원 예약 검색 결과
      */
-    @PostMapping("/search")
-    public String searchNonMemberReservations(@RequestParam("phoneNumber") String phoneNumber, Model model) {
-        List<ReservationDTO> reservationDTOs = reservationService.findByPhoneNumber(phoneNumber)
-                .stream()
-                .map(this::convertToDto) // Entity -> DTO 변환
-                .collect(Collectors.toList());
-        model.addAttribute("reservations", reservationDTOs);
-        return "reservation/list_non_member";
-    }
+//    @PostMapping("/search")
+//    public String searchNonMemberReservations(@RequestParam("phoneNumber") String phoneNumber, Model model) {
+//        List<ReservationDTO> reservationDTOs = reservationService.findByPhoneNumber(phoneNumber)
+//                .stream()
+//                .map(this::convertToDto) // Entity -> DTO 변환
+//                .collect(Collectors.toList());
+//        model.addAttribute("reservations", reservationDTOs);
+//        return "reservation/list_non_member";
+//    }
 
     /**
      * 관리자: 모든 예약 목록 보기
