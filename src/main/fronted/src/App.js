@@ -8,6 +8,7 @@ import Signup from './components/signup.js';
 import Main from './components/main.js';
 import Notice from './components/notice.js';
 import Reserve from './components/reserve.js';
+import UserPage from './components/userPage.js';
 
 class App extends Component{
   constructor(props){
@@ -27,6 +28,7 @@ class App extends Component{
               <Route path='/login' element={<Login/>}/>
               <Route path='/notice' element={<Notice/>}/>
               <Route path='/reserve' element={<Reserve/>}/>
+              <Route path='/userPage' element={<UserPage/>}/>
             </Routes>
         </BrowserRouter>
       </div>
