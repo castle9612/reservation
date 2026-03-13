@@ -31,6 +31,7 @@ public class UserService implements UserDetailsService {
         String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
         userDTO.setPassword(encodedPassword);
         userDTO.setRole(normalizeRole(userDTO.getRole()));
+        userDTO.setPhoneNumber(normalizePhoneNumber(userDTO.getPhoneNumber()));
 
         UserEntity userEntity = UserEntity.toUserEntity(userDTO);
         userRepository.save(userEntity);
@@ -52,11 +53,15 @@ public class UserService implements UserDetailsService {
 
     public String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
             return null;
         }
 
         Object principal = authentication.getPrincipal();
+
         if (principal instanceof UserDetails userDetails) {
             return userDetails.getUsername();
         }
@@ -68,31 +73,44 @@ public class UserService implements UserDetailsService {
         if (userDTO == null) {
             throw new IllegalArgumentException("회원가입 정보가 없습니다.");
         }
+
         if (isBlank(userDTO.getUserId())) {
             throw new IllegalArgumentException("아이디는 필수입니다.");
         }
+
         if (isBlank(userDTO.getPassword())) {
             throw new IllegalArgumentException("비밀번호는 필수입니다.");
         }
+
         if (isBlank(userDTO.getUserName())) {
             throw new IllegalArgumentException("이름은 필수입니다.");
         }
+
         if (isBlank(userDTO.getUserEmail())) {
             throw new IllegalArgumentException("이메일은 필수입니다.");
         }
+
         if (isBlank(userDTO.getPhoneNumber())) {
             throw new IllegalArgumentException("전화번호는 필수입니다.");
         }
+
+        String normalizedPhoneNumber = normalizePhoneNumber(userDTO.getPhoneNumber());
+        validateKoreanPhoneNumber(normalizedPhoneNumber);
+        userDTO.setPhoneNumber(normalizedPhoneNumber);
+
         if (!Boolean.TRUE.equals(userDTO.getPrivacyConsent())) {
             throw new IllegalArgumentException("개인정보 수집 및 이용 동의가 필요합니다.");
         }
+
         if (userRepository.existsById(userDTO.getUserId())) {
             throw new IllegalStateException("이미 사용 중인 아이디입니다.");
         }
+
         if (userRepository.existsByEmail(userDTO.getUserEmail())) {
             throw new IllegalStateException("이미 사용 중인 이메일입니다.");
         }
-        if (userRepository.existsByPhoneNumber(userDTO.getPhoneNumber())) {
+
+        if (userRepository.existsByPhoneNumber(normalizedPhoneNumber)) {
             throw new IllegalStateException("이미 사용 중인 전화번호입니다.");
         }
     }
@@ -107,6 +125,20 @@ public class UserService implements UserDetailsService {
             normalized = normalized.substring("ROLE_".length());
         }
         return normalized;
+    }
+
+    private void validateKoreanPhoneNumber(String phoneNumber) {
+        String regex = "^(01[016789]\\d{7,8}|02\\d{7,8}|0[3-9]\\d{8,9})$";
+        if (!phoneNumber.matches(regex)) {
+            throw new IllegalArgumentException("올바른 대한민국 전화번호 형식이 아닙니다.");
+        }
+    }
+
+    private String normalizePhoneNumber(String phoneNumber) {
+        if (phoneNumber == null) {
+            return null;
+        }
+        return phoneNumber.replaceAll("[^0-9]", "");
     }
 
     private boolean isBlank(String value) {

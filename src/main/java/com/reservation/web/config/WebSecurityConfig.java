@@ -3,6 +3,7 @@ package com.reservation.web.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -35,14 +36,33 @@ public class WebSecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico", "/uploads/**"
+                                "/css/**", "/js/**", "/images/**", "/webjars/**",
+                                "/favicon.ico", "/uploads/**"
                         ).permitAll()
+
                         .requestMatchers(
                                 "/", "/index", "/login", "/signup",
-                                "/announcement/list", "/announcement/detail/**",
-                                "/courses", "/courses/**",
-                                "/reservations/search", "/reservations/new/non-member", "/reservations/save"
+                                "/announcement/list", "/announcement/detail/**"
                         ).permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/courses", "/courses/*").permitAll()
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/reservations/search",
+                                "/reservations/new/non-member"
+                        ).permitAll()
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/reservations/search",
+                                "/reservations/save"
+                        ).permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/courses/new").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/courses").hasRole("ADMIN")
+                        .requestMatchers("/courses/edit/**", "/courses/delete/**").hasRole("ADMIN")
+
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/reservations/**", "/mypage/**").authenticated()
                         .anyRequest().permitAll()
