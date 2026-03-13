@@ -12,7 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +31,11 @@ public class CourseService {
         if (courseEntity.getStaff() != null) {
             StaffEntity staff = courseEntity.getStaff();
             dto.setStaffId(staff.getId());
-            dto.setStaff(new StaffDTO(staff.getId(), staff.getName(), staff.getProfilePicture()));
+            dto.setStaff(new StaffDTO(
+                    staff.getId(),
+                    staff.getName(),
+                    staff.getProfilePicture()
+            ));
         }
 
         return dto;
@@ -52,13 +55,14 @@ public class CourseService {
 
     @Transactional(readOnly = true)
     public Optional<CourseEntity> findCourseById(Long courseId) {
-        return courseRepository.findById(courseId);
+        return courseRepository.findByIdWithStaff(courseId);
     }
 
     @Transactional
     public CourseEntity updateCourse(Long courseId, CourseDTO courseDTO) {
         CourseEntity courseEntity = courseRepository.findById(courseId)
                 .orElseThrow(() -> new IllegalArgumentException("수정할 코스를 찾을 수 없습니다. ID: " + courseId));
+
         mapDtoToEntity(courseDTO, courseEntity);
         return courseRepository.save(courseEntity);
     }
