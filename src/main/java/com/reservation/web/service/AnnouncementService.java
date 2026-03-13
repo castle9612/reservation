@@ -179,6 +179,7 @@ public class AnnouncementService {
         }
     }
 
+    @Transactional(readOnly = true)
     public AnnouncementEntity findById(Long id) {
         return announcementRepository.findById(id).orElse(null);
     }
