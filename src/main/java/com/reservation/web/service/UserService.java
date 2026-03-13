@@ -4,68 +4,112 @@ import com.reservation.web.dto.UserDTO;
 import com.reservation.web.entity.UserEntity;
 import com.reservation.web.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User; // Spring Security의 User
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-public class UserService implements UserDetailsService { // ⬅️ UserDetailsService 구현 추가
+public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // 회원가입 로직
+    @Transactional
     public void signup(UserDTO userDTO) {
+        validateSignupRequest(userDTO);
+
         String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
         userDTO.setPassword(encodedPassword);
+        userDTO.setRole(normalizeRole(userDTO.getRole()));
+
         UserEntity userEntity = UserEntity.toUserEntity(userDTO);
         userRepository.save(userEntity);
     }
 
-    // ⬇️ UserDetailsService 인터페이스의 메소드 구현
     @Override
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
-        Optional<UserEntity> userEntityOptional = userRepository.findById(userId);
+        UserEntity userEntity = userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("아이디 또는 비밀번호가 올바르지 않습니다."));
 
-        if (userEntityOptional.isEmpty()) {
-            System.out.println("❌ UserDetailsService: 사용자 없음 - " + userId);
-            throw new UsernameNotFoundException("아이디 또는 비밀번호가 올바르지 않습니다.");
-        }
-
-        UserEntity userEntity = userEntityOptional.get();
-        System.out.println("✅ UserDetailsService: 사용자 찾음 - " + userEntity.getUserId());
-        System.out.println("🎯 사용자 권한: " + userEntity.getRole());
+        String normalizedRole = normalizeRole(userEntity.getRole());
 
         return new User(
                 userEntity.getUserId(),
                 userEntity.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + userEntity.getRole()))
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + normalizedRole))
         );
     }
 
-
-
-    // 현재 로그인된 사용자의 ID를 반환하는 메소드
     public String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
             return null;
         }
-        if (authentication.getPrincipal() instanceof UserDetails) {
-            return ((UserDetails) authentication.getPrincipal()).getUsername();
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetails userDetails) {
+            return userDetails.getUsername();
         }
+
         return authentication.getName();
+    }
+
+    private void validateSignupRequest(UserDTO userDTO) {
+        if (userDTO == null) {
+            throw new IllegalArgumentException("회원가입 정보가 없습니다.");
+        }
+        if (isBlank(userDTO.getUserId())) {
+            throw new IllegalArgumentException("아이디는 필수입니다.");
+        }
+        if (isBlank(userDTO.getPassword())) {
+            throw new IllegalArgumentException("비밀번호는 필수입니다.");
+        }
+        if (isBlank(userDTO.getUserName())) {
+            throw new IllegalArgumentException("이름은 필수입니다.");
+        }
+        if (isBlank(userDTO.getUserEmail())) {
+            throw new IllegalArgumentException("이메일은 필수입니다.");
+        }
+        if (isBlank(userDTO.getPhoneNumber())) {
+            throw new IllegalArgumentException("전화번호는 필수입니다.");
+        }
+        if (!Boolean.TRUE.equals(userDTO.getPrivacyConsent())) {
+            throw new IllegalArgumentException("개인정보 수집 및 이용 동의가 필요합니다.");
+        }
+        if (userRepository.existsById(userDTO.getUserId())) {
+            throw new IllegalStateException("이미 사용 중인 아이디입니다.");
+        }
+        if (userRepository.existsByEmail(userDTO.getUserEmail())) {
+            throw new IllegalStateException("이미 사용 중인 이메일입니다.");
+        }
+        if (userRepository.existsByPhoneNumber(userDTO.getPhoneNumber())) {
+            throw new IllegalStateException("이미 사용 중인 전화번호입니다.");
+        }
+    }
+
+    private String normalizeRole(String role) {
+        if (isBlank(role)) {
+            return "USER";
+        }
+
+        String normalized = role.trim().toUpperCase();
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        return normalized;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

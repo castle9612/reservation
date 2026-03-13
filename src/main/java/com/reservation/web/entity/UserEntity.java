@@ -1,14 +1,18 @@
 package com.reservation.web.entity;
 
 import com.reservation.web.dto.UserDTO;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Getter
@@ -33,7 +37,7 @@ public class UserEntity {
     private String phoneNumber;
 
     @Column(name = "role", nullable = false)
-    private String role = "user";
+    private String role = "USER";
 
     @Column(length = 10)
     private String gender;
@@ -61,9 +65,6 @@ public class UserEntity {
 
     @PrePersist
     protected void onCreate() {
-//        if (this.userId == null) {
-//            this.userId = UUID.randomUUID().toString();
-//        }
         this.createdDate = LocalDateTime.now();
     }
 
@@ -71,7 +72,6 @@ public class UserEntity {
     protected void onUpdate() {
         this.updatedDate = LocalDateTime.now();
     }
-
 
     @Builder
     public static UserEntity toUserEntity(UserDTO userDTO) {
@@ -81,13 +81,25 @@ public class UserEntity {
         userEntity.setName(userDTO.getUserName());
         userEntity.setEmail(userDTO.getUserEmail());
         userEntity.setPhoneNumber(userDTO.getPhoneNumber());
-        userEntity.setRole(userDTO.getRole() != null ? userDTO.getRole() : "ROLE_USER");
+        userEntity.setRole(normalizeRole(userDTO.getRole()));
         userEntity.setGender(userDTO.getGender());
         userEntity.setMaritalStatus(userDTO.isMaritalStatus());
         userEntity.setBirthdate(userDTO.getBirthdate());
-        userEntity.setPrivacyConsent(userDTO.getPrivacyConsent());
+        userEntity.setPrivacyConsent(Boolean.TRUE.equals(userDTO.getPrivacyConsent()));
         userEntity.setPackageCount(userDTO.getPackageCount());
         userEntity.setMemo(userDTO.getMemo());
         return userEntity;
+    }
+
+    private static String normalizeRole(String role) {
+        if (role == null || role.isBlank()) {
+            return "USER";
+        }
+
+        String normalized = role.trim().toUpperCase();
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        return normalized;
     }
 }

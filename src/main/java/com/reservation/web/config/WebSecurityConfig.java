@@ -1,65 +1,85 @@
 package com.reservation.web.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer; // 추가
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class WebSecurityConfig {
-
-    @Bean
-    public PasswordEncoder passwordEncoder(){
-        return new BCryptPasswordEncoder();
-    }
 
     @Autowired
     private CustomAuthFailureHandler customAuthFailureHandler;
 
-    // 🔽 정적 리소스들은 Spring Security 필터링을 무시하도록 설정
+    @Value("${app.frontend.origin:http://localhost:3000}")
+    private String frontendOrigin;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return (web) -> web.ignoring().requestMatchers(
                 new AntPathRequestMatcher("/css/**"),
                 new AntPathRequestMatcher("/js/**"),
                 new AntPathRequestMatcher("/images/**"),
-                new AntPathRequestMatcher("/webjars/**"), // ⬅️ WebJars 경로 추가
+                new AntPathRequestMatcher("/webjars/**"),
                 new AntPathRequestMatcher("/favicon.ico"),
-                new AntPathRequestMatcher("/uploads/**") // 업로드 파일 경로도 여기에 포함
+                new AntPathRequestMatcher("/uploads/**")
         );
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/signup") // 예: 회원가입 POST는 CSRF 예외
-                                // 필요에 따라 다른 API 엔드포인트도 CSRF 예외 처리
+                                new AntPathRequestMatcher("/signup"),
+                                new AntPathRequestMatcher("/api/**")
                         )
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // ⬆️ WebSecurityCustomizer로 옮겼으므로 여기서는 정적 리소스 permitAll 제거
                         .requestMatchers(
-                                "/", "/index", "/login", "/signup",
-                                "/announcement/list", "/announcement/detail/**", // 상세 페이지는 ID가 붙으므로 /**
-                                "/courses", // 코스 안내
+                                "/",
+                                "/index",
+                                "/login",
+                                "/signup",
+                                "/announcement/list",
+                                "/announcement/detail/**",
+                                "/courses",
                                 "/courses/{id}",
-                                "/reservations/search", // 비회원 예약 조회
+                                "/reservations/search",
                                 "/reservations/new/non-member",
-                                "/reservations/save"
-                                ).permitAll()
-                        .requestMatchers("/reservations").authenticated() // "내 예약"은 인증된 사용자만
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                                "/reservations/save",
+                                "/api/auth/signup"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/reservations/guest").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/reservations/guest").permitAll()
+                        .requestMatchers("/api/reservations/member", "/api/reservations/me", "/api/auth/me").authenticated()
+                        .requestMatchers("/reservations").authenticated()
+                        .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -69,19 +89,31 @@ public class WebSecurityConfig {
                         .passwordParameter("password")
                         .defaultSuccessUrl("/", true)
                         .failureHandler(customAuthFailureHandler)
-                        .permitAll() // 로그인 페이지 자체와 로그인 처리 URL은 모두 접근 가능
-                )
-                .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout")) // POST 권장
-                        .logoutSuccessUrl("/") // 로그아웃 성공 후 리다이렉트될 페이지
-                        .invalidateHttpSession(true) // 세션 무효화
-                        .deleteCookies("JSESSIONID", "CSRF-TOKEN") // JSESSIONID 및 CSRF 토큰 쿠키 삭제 (CSRF 쿠키 이름 확인)
                         .permitAll()
                 )
-                .exceptionHandling(exceptions -> exceptions
-                        .accessDeniedPage("/403")
-                );
+                .logout(logout -> logout
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+                        .logoutSuccessUrl("/")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID", "XSRF-TOKEN", "CSRF-TOKEN")
+                        .permitAll()
+                )
+                .exceptionHandling(exceptions -> exceptions.accessDeniedPage("/403"));
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of(frontendOrigin, "http://localhost:5173"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Set-Cookie"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
