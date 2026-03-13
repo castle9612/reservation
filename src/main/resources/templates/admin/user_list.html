@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전체 사용자 목록</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.6.2/css/bootstrap.min.css}">
+</head>
+<body>
+<div class="container mt-4">
+    <h2 class="mb-4">전체 사용자 목록</h2>
+
+    <table class="table table-bordered table-hover">
+        <thead class="thead-light">
+        <tr>
+            <th>아이디</th>
+            <th>이름</th>
+            <th>이메일</th>
+            <th>전화번호</th>
+            <th>패키지 횟수</th>
+            <th>권한</th>
+            <th>관리</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="user : ${users}">
+            <td th:text="${user.userId}">id</td>
+            <td th:text="${user.name}">name</td>
+            <td th:text="${user.email}">email</td>
+            <td th:text="${user.phoneNumber}">phone</td>
+            <td th:text="${user.packageCount}">0</td>
+            <td th:text="${user.role}">USER</td>
+            <td>
+                <a th:href="@{/admin/userdetails(userId=${user.userId})}" class="btn btn-sm btn-primary">수정</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <a href="/admin/dashboard" class="btn btn-secondary">대시보드로</a>
+</div>
+</body>
+</html>
