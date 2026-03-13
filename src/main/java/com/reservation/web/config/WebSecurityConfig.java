@@ -15,76 +15,31 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @Configuration
 @EnableMethodSecurity
 public class WebSecurityConfig {
-
     @Autowired
     private CustomAuthFailureHandler customAuthFailureHandler;
-
     @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
-
+    public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/signup"),
-                                new AntPathRequestMatcher("/admin/announcements/uploadSummernoteImageFile")
-                        )
-                )
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/css/**", "/js/**", "/images/**", "/webjars/**",
-                                "/favicon.ico", "/uploads/**"
-                        ).permitAll()
-
-                        .requestMatchers(
-                                "/", "/index", "/login", "/signup",
-                                "/announcement/list", "/announcement/detail/**"
-                        ).permitAll()
-
-                        .requestMatchers(HttpMethod.GET, "/courses", "/courses/*").permitAll()
-
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/reservations/search",
-                                "/reservations/new/non-member"
-                        ).permitAll()
-
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/reservations/search",
-                                "/reservations/save"
-                        ).permitAll()
-
-                        .requestMatchers(HttpMethod.GET, "/courses/new").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/courses").hasRole("ADMIN")
-                        .requestMatchers("/courses/edit/**", "/courses/delete/**").hasRole("ADMIN")
-
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/reservations/**", "/mypage/**").authenticated()
-                        .anyRequest().permitAll()
-                )
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .loginProcessingUrl("/login")
-                        .usernameParameter("user_id")
-                        .passwordParameter("password")
-                        .defaultSuccessUrl("/", true)
-                        .failureHandler(customAuthFailureHandler)
-                        .permitAll()
-                )
-                .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                        .logoutSuccessUrl("/")
-                        .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID", "CSRF-TOKEN")
-                        .permitAll()
-                )
-                .exceptionHandling(ex -> ex.accessDeniedPage("/403"));
-
+        http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).ignoringRequestMatchers(new AntPathRequestMatcher("/signup"), new AntPathRequestMatcher("/admin/announcements/uploadSummernoteImageFile")))
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico", "/uploads/**").permitAll()
+                .requestMatchers("/", "/index", "/login", "/signup", "/announcement/list", "/announcement/detail/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/courses", "/courses/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/courses", "/api/courses/*", "/api/auth/me", "/api/reservations/search").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/logout").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/reservations/guest").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/reservations/member").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/reservations/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/courses/new").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/courses").hasRole("ADMIN")
+                .requestMatchers("/courses/edit/**", "/courses/delete/**").hasRole("ADMIN")
+                .requestMatchers("/api/admin/**", "/admin/**").hasRole("ADMIN")
+                .requestMatchers("/reservations/**", "/mypage/**").authenticated()
+                .anyRequest().permitAll())
+            .formLogin(form -> form.loginPage("/login").loginProcessingUrl("/api/auth/login").usernameParameter("userId").passwordParameter("password").successHandler((request, response, authentication) -> response.setStatus(200)).failureHandler((request, response, exception) -> { response.setStatus(401); response.setContentType("application/json;charset=UTF-8"); response.getWriter().write("{\"message\":\"아이디 또는 비밀번호가 올바르지 않습니다.\"}"); }).permitAll())
+            .logout(logout -> logout.logoutRequestMatcher(new AntPathRequestMatcher("/api/auth/logout")).logoutSuccessHandler((request, response, authentication) -> response.setStatus(200)).invalidateHttpSession(true).deleteCookies("JSESSIONID", "XSRF-TOKEN").permitAll())
+            .exceptionHandling(ex -> ex.accessDeniedHandler((request, response, accessDeniedException) -> { response.setStatus(403); response.setContentType("application/json;charset=UTF-8"); response.getWriter().write("{\"message\":\"접근 권한이 없습니다.\"}"); }).authenticationEntryPoint((request, response, authException) -> { response.setStatus(401); response.setContentType("application/json;charset=UTF-8"); response.getWriter().write("{\"message\":\"로그인이 필요합니다.\"}"); }));
         return http.build();
     }
 }
