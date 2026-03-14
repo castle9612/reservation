@@ -1,9 +1,5 @@
 package com.reservation.web.controller.api;
 
-public class ApiAuthController {
-}
-package com.reservation.web.controller.api;
-
 import com.reservation.web.dto.UserDTO;
 import com.reservation.web.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
