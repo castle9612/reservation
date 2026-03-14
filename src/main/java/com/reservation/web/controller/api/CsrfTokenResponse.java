@@ -7,4 +7,6 @@ import lombok.Getter;
 @AllArgsConstructor
 public class CsrfTokenResponse {
     private String token;
+    private String headerName;
+    private String parameterName;
 }

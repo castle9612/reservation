@@ -29,13 +29,14 @@ public class PublicApiController {
                 .map(this::toAnnouncementItem)
                 .collect(Collectors.toList());
 
-        List<Map<String, Object>> staff = staffService.findAllStaff().stream()
+        List<Map<String, Object>> staffs = staffService.findAllStaff().stream()
+                .limit(5)
                 .map(this::toStaffItem)
                 .collect(Collectors.toList());
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("announcements", announcements);
-        data.put("staff", staff);
+        data.put("staffs", staffs); // 프론트와 키 이름 통일
         return ApiResponse.ok(data);
     }
 

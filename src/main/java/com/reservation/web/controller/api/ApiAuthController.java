@@ -2,7 +2,6 @@ package com.reservation.web.controller.api;
 
 import com.reservation.web.dto.UserDTO;
 import com.reservation.web.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,12 +21,19 @@ public class ApiAuthController {
 
     @GetMapping("/csrf")
     public ApiResponse<CsrfTokenResponse> csrf(CsrfToken csrfToken) {
-        return ApiResponse.ok(new CsrfTokenResponse(csrfToken.getToken()));
+        return ApiResponse.ok(
+                new CsrfTokenResponse(
+                        csrfToken.getToken(),
+                        csrfToken.getHeaderName(),
+                        csrfToken.getParameterName()
+                )
+        );
     }
 
     @GetMapping("/me")
     public ApiResponse<AuthStatusResponse> me(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()
+        if (authentication == null
+                || !authentication.isAuthenticated()
                 || "anonymousUser".equals(authentication.getPrincipal())) {
             return ApiResponse.ok(new AuthStatusResponse(false, null, null));
         }

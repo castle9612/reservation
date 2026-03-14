@@ -18,13 +18,16 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/signup")
-    public String showSignupForm(Model model, HttpServletRequest request) {
-        model.addAttribute("userDTO", new UserDTO());
+    public String showSignupForm(Model model) {
+        if (!model.containsAttribute("userDTO")) {
+            model.addAttribute("userDTO", new UserDTO());
+        }
         return "signup";
     }
 
     @PostMapping("/signup")
-    public String registerUser(@ModelAttribute UserDTO userDTO, RedirectAttributes redirectAttributes) {
+    public String registerUser(@ModelAttribute UserDTO userDTO,
+                               RedirectAttributes redirectAttributes) {
         try {
             userService.signup(userDTO);
             return "redirect:/login?signupSuccess";
@@ -36,19 +39,17 @@ public class UserController {
     }
 
     @GetMapping("/login")
-    public String showLoginForm(
-            HttpServletRequest request,
-            Model model
-    ) {
+    public String showLoginForm(HttpServletRequest request, Model model) {
         String error = request.getParameter("error");
         String signupSuccess = request.getParameter("signupSuccess");
+        String logout = request.getParameter("logout");
 
         if (error != null) {
-            String errorMessage = (String) request.getSession().getAttribute("errorMessage");
-            if (errorMessage == null) {
-                errorMessage = "아이디 또는 비밀번호가 올바르지 않습니다.";
-            }
-            model.addAttribute("errorMessage", errorMessage);
+            Object errorMessage = request.getSession().getAttribute("errorMessage");
+            model.addAttribute(
+                    "errorMessage",
+                    errorMessage != null ? errorMessage.toString() : "아이디 또는 비밀번호가 올바르지 않습니다."
+            );
             request.getSession().removeAttribute("errorMessage");
         }
 
@@ -56,6 +57,15 @@ public class UserController {
             model.addAttribute("signupSuccessMessage", "회원가입이 완료되었습니다. 로그인해주세요.");
         }
 
+        if (logout != null) {
+            model.addAttribute("logoutMessage", "성공적으로 로그아웃되었습니다.");
+        }
+
         return "login";
+    }
+
+    @GetMapping({"/", "/index"})
+    public String index() {
+        return "index";
     }
 }
