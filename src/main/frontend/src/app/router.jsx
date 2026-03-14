@@ -9,21 +9,23 @@ import MemberBookingPage from '../pages/MemberBookingPage'
 import GuestBookingPage from '../pages/GuestBookingPage'
 import MyReservationsPage from '../pages/MyReservationsPage'
 import GuestLookupPage from '../pages/GuestLookupPage'
+import NotFoundPage from '../pages/NotFoundPage'
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout />,
+    errorElement: <NotFoundPage />,
     children: [
       { index: true, element: <HomePage /> },
       { path: 'courses', element: <CoursesPage /> },
       { path: 'courses/:courseId', element: <CourseDetailPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'signup', element: <SignupPage /> },
-      { path: 'booking/member', element: <MemberBookingPage /> },
-      { path: 'booking/guest', element: <GuestBookingPage /> },
-      { path: 'my-reservations', element: <MyReservationsPage /> },
-      { path: 'guest-lookup', element: <GuestLookupPage /> },
+      { path: 'reservations/member', element: <MemberBookingPage /> },
+      { path: 'reservations/guest', element: <GuestBookingPage /> },
+      { path: 'reservations/me', element: <MyReservationsPage /> },
+      { path: 'reservations/search', element: <GuestLookupPage /> },
     ],
   },
 ])

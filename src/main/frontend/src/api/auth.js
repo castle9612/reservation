@@ -2,7 +2,7 @@ import { api, bootstrapCsrf } from './client'
 
 export async function fetchMe() {
   const { data } = await api.get('/auth/me')
-  return data.data
+  return data?.data ?? { authenticated: false, userId: null, role: null }
 }
 
 export async function login(payload) {
@@ -18,8 +18,8 @@ export async function login(payload) {
     },
   })
 
-  if (!data.success) {
-    throw new Error(data.message || '로그인에 실패했습니다.')
+  if (!data?.success) {
+    throw new Error(data?.message || '로그인에 실패했습니다.')
   }
 
   return fetchMe()
