@@ -1,85 +1,85 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import Container from '../components/ui/Container'
-import SectionHeading from '../components/ui/SectionHeading'
-import InputField from '../components/ui/InputField'
-import ReservationCard from '../components/ui/ReservationCard'
-import EmptyState from '../components/ui/EmptyState'
+import SurfaceCard from '../components/common/SurfaceCard'
+import StatusMessage from '../components/common/StatusMessage'
 import { searchGuestReservations } from '../api/reservations'
+import { dateTime } from '../utils/format'
 
 export default function GuestLookupPage() {
-  const [phoneNumber, setPhoneNumber] = useState('')
-  const [results, setResults] = useState([])
-  const [searched, setSearched] = useState(false)
+  const [form, setForm] = useState({ guestName: '', guestPhone: '' })
+  const [items, setItems] = useState([])
 
   const mutation = useMutation({
     mutationFn: searchGuestReservations,
     onSuccess: (data) => {
-      setResults(data)
-      setSearched(true)
-    },
-    onError: () => {
-      setResults([])
-      setSearched(true)
+      const list = Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : []
+      setItems(list)
     },
   })
 
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    mutation.mutate(phoneNumber)
-  }
-
   return (
-    <section className="pb-20 pt-10">
-      <Container className="space-y-8">
-        <SectionHeading
-          eyebrow="Guest Lookup"
-          title="비회원 예약 조회"
-          description="예약 당시 입력한 연락처로 예약 내역을 확인할 수 있다."
-        />
-
-        <div className="glass-card soft-shadow rounded-[36px] border border-white/70 p-8">
-          <form className="flex flex-col gap-4 sm:flex-row" onSubmit={handleSubmit}>
-            <div className="flex-1">
-              <InputField
-                label="전화번호"
-                name="phoneNumber"
-                value={phoneNumber}
-                onChange={(event) => setPhoneNumber(event.target.value)}
-                placeholder="01012345678"
-                required
-              />
-            </div>
-            <div className="sm:mt-8">
-              <button
-                type="submit"
-                disabled={mutation.isPending}
-                className="w-full rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white sm:w-auto"
-              >
-                {mutation.isPending ? '조회 중...' : '예약 조회'}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {searched && (
-          results.length > 0 ? (
-            <div className="grid gap-5 lg:grid-cols-2">
-              {results.map((reservation, index) => (
-                <ReservationCard
-                  key={reservation.id ?? `${reservation.courseId}-${index}`}
-                  reservation={reservation}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="조회된 예약이 없습니다."
-              description="입력한 연락처를 다시 확인해 주세요."
+    <div className="grid gap-8 xl:grid-cols-[0.8fr_1.2fr]">
+      <SurfaceCard>
+        <h1 className="text-3xl font-bold text-slate-900">비회원 예약 조회</h1>
+        <form
+          className="mt-8 grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            mutation.mutate(form)
+          }}
+        >
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">이름</label>
+            <input
+              name="guestName"
+              value={form.guestName}
+              onChange={(e) => setForm((prev) => ({ ...prev, guestName: e.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              required
             />
-          )
-        )}
-      </Container>
-    </section>
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">전화번호</label>
+            <input
+              name="guestPhone"
+              value={form.guestPhone}
+              onChange={(e) => setForm((prev) => ({ ...prev, guestPhone: e.target.value }))}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3"
+              required
+            />
+          </div>
+          <button type="submit" className="rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white" disabled={mutation.isPending}>
+            조회하기
+          </button>
+          {mutation.isError ? <StatusMessage type="error">{mutation.error.message}</StatusMessage> : null}
+        </form>
+      </SurfaceCard>
+
+      <div className="grid gap-4">
+        {items.map((item, index) => (
+          <SurfaceCard key={item.id ?? index}>
+            <div className="grid gap-3 md:grid-cols-4">
+              <div>
+                <div className="text-xs text-slate-500">예약자</div>
+                <div className="mt-1 font-semibold text-slate-900">{item.guestName ?? item.name ?? '-'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-slate-500">예약일시</div>
+                <div className="mt-1 font-semibold text-slate-900">{dateTime(item.reservationDateTime ?? item.dateTime)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-slate-500">코스</div>
+                <div className="mt-1 font-semibold text-slate-900">{item.courseName ?? item.course?.name ?? '-'}</div>
+              </div>
+              <div>
+                <div className="text-xs text-slate-500">상태</div>
+                <div className="mt-1 font-semibold text-slate-900">{item.status ?? '대기중'}</div>
+              </div>
+            </div>
+          </SurfaceCard>
+        ))}
+        {!mutation.isPending && items.length === 0 ? <SurfaceCard>조회 결과가 없습니다.</SurfaceCard> : null}
+      </div>
+    </div>
   )
 }

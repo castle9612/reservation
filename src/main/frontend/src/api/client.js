@@ -27,16 +27,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const status = error?.response?.status
     const message =
       error?.response?.data?.message ||
-      (status === 401
-        ? '로그인이 필요합니다.'
-        : status === 403
-          ? '접근 권한이 없습니다.'
-          : error?.code === 'ERR_NETWORK'
-            ? '백엔드 서버에 연결할 수 없습니다.'
-            : '요청 처리 중 오류가 발생했습니다.')
+      error?.response?.data?.error ||
+      error?.message ||
+      '요청 처리 중 오류가 발생했습니다.'
     return Promise.reject(new Error(message))
   },
 )

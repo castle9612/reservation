@@ -1,43 +1,45 @@
-import Container from '../components/ui/Container'
-import SectionHeading from '../components/ui/SectionHeading'
-import CourseCard from '../components/ui/CourseCard'
-import { useCourses } from '../hooks/useCourses'
-import EmptyState from '../components/ui/EmptyState'
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import SectionHeading from '../components/common/SectionHeading'
+import SurfaceCard from '../components/common/SurfaceCard'
+import { fetchCourses } from '../api/courses'
+import { currency } from '../utils/format'
 
 export default function CoursesPage() {
-  const { data: courses = [], isLoading } = useCourses()
+  const { data: courses = [] } = useQuery({
+    queryKey: ['courses'],
+    queryFn: fetchCourses,
+  })
 
   return (
-    <section className="pb-20 pt-8">
-      <Container className="space-y-8">
-        <SectionHeading
-          eyebrow="Course Menu"
-          title="당신의 컨디션에 맞는 케어 코스"
-          description="테라피 시간, 담당자, 회원가와 비회원가를 한눈에 비교할 수 있다."
-        />
-
-        {isLoading ? (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-[420px] animate-pulse rounded-[28px] bg-white/70"
-              />
-            ))}
-          </div>
-        ) : courses.length > 0 ? (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {courses.map((course) => (
-              <CourseCard key={course.id} course={course} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="등록된 코스가 아직 없습니다."
-            description="관리자에서 코스를 등록하면 이 화면에 자동으로 표시된다."
-          />
-        )}
-      </Container>
-    </section>
+    <div>
+      <SectionHeading eyebrow="Courses" title="코스 목록" />
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {courses.map((course) => (
+          <SurfaceCard key={course.id}>
+            <div className="mb-5 h-56 rounded-[26px] bg-gradient-to-br from-stone-100 via-amber-50 to-orange-100" />
+            <div className="text-2xl font-semibold text-slate-900">{course.name}</div>
+            <p className="mt-3 min-h-12 text-sm leading-6 text-slate-600">{course.description}</p>
+            <div className="mt-5 grid gap-2 text-sm text-slate-600">
+              <div className="flex items-center justify-between">
+                <span>소요시간</span>
+                <span className="font-medium text-slate-900">{course.duration}분</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>회원가</span>
+                <span className="font-medium text-slate-900">{currency(course.memberPrice ?? course.price)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>비회원가</span>
+                <span className="font-medium text-slate-900">{currency(course.nonMemberPrice ?? course.guestPrice)}</span>
+              </div>
+            </div>
+            <Link to={`/courses/${course.id}`} className="mt-6 inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+              상세 보기
+            </Link>
+          </SurfaceCard>
+        ))}
+      </div>
+    </div>
   )
 }
