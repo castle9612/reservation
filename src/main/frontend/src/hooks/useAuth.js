@@ -6,6 +6,5 @@ export function useAuth() {
     queryKey: ['me'],
     queryFn: fetchMe,
     retry: false,
-    staleTime: 60 * 1000,
   })
 }

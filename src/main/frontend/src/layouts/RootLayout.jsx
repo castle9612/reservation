@@ -1,13 +1,22 @@
 import { Outlet } from 'react-router-dom'
-import Header from '../components/layout/Header'
+import { useAuth } from '../hooks/useAuth'
+import Container from '../components/ui/Container'
+import Header from '../components/sections/SiteHeader'
+import Footer from '../components/sections/SiteFooter'
+import ApiStatusBanner from '../components/ui/ApiStatusBanner'
 
 export default function RootLayout() {
+  const auth = useAuth()
+  const offline = auth.isError && auth.error?.message?.includes('연결')
+
   return (
-    <div className="min-h-screen bg-stone-50 text-slate-800">
+    <div className="min-h-screen">
       <Header />
-      <main className="mx-auto max-w-6xl px-4 py-8">
-        <Outlet />
-      </main>
+      <Container className="pt-6">
+        <ApiStatusBanner visible={offline} />
+      </Container>
+      <Outlet />
+      <Footer />
     </div>
   )
 }

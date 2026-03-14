@@ -25,14 +25,20 @@ export async function login(payload) {
   return fetchMe()
 }
 
-export async function signup(payload) {
-  await bootstrapCsrf()
-  const { data } = await api.post('/auth/signup', payload)
-  return data
-}
-
 export async function logout() {
   await bootstrapCsrf()
   const { data } = await api.post('/auth/logout')
+  if (!data?.success) {
+    throw new Error(data?.message || '로그아웃에 실패했습니다.')
+  }
+  return data
+}
+
+export async function signup(payload) {
+  await bootstrapCsrf()
+  const { data } = await api.post('/auth/signup', payload)
+  if (!data?.success) {
+    throw new Error(data?.message || '회원가입에 실패했습니다.')
+  }
   return data
 }
