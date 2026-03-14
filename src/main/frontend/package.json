@@ -1,7 +1,7 @@
 {
-  "name": "therapy-frontend",
+  "name": "reservation-frontend",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,18 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.66.0",
-    "@tailwindcss/vite": "^4.2.1",
-    "axios": "^1.8.4",
-    "framer-motion": "^12.6.2",
-    "lucide-react": "^0.511.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-router-dom": "^7.6.0",
-    "tailwindcss": "^4.2.1"
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.0.4",
-    "vite": "^7.1.0"
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.10"
   }
 }

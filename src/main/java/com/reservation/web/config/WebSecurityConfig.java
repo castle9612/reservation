@@ -1,19 +1,33 @@
 package com.reservation.web.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @EnableMethodSecurity
+@RequiredArgsConstructor
 public class WebSecurityConfig {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -23,79 +37,101 @@ public class WebSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/signup"),
-                                new AntPathRequestMatcher("/admin/announcements/uploadSummernoteImageFile")
-                        )
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/", "/index",
-                                "/css/**", "/js/**", "/images/**", "/webjars/**",
-                                "/favicon.ico", "/uploads/**"
-                        ).permitAll()
-
-                        .requestMatchers(HttpMethod.GET,
+                                "/",
+                                "/login",
+                                "/signup",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**",
+                                "/announcement/**",
+                                "/staff",
+                                "/staff/",
+                                "/staff/{id}",
                                 "/api/auth/csrf",
                                 "/api/auth/me",
-                                "/api/courses",
-                                "/api/courses/*",
-                                "/api/reservations/search"
+                                "/api/public/**",
+                                "/error"
                         ).permitAll()
-
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/auth/login",
-                                "/api/auth/signup",
-                                "/api/reservations/guest"
-                        ).permitAll()
-
-                        .requestMatchers(HttpMethod.POST, "/api/auth/logout").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/reservations/me").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/reservations/member").authenticated()
-
                         .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .anyRequest().permitAll()
+                        .requestMatchers("/staff/new", "/staff/edit/**", "/staff/delete/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
-                        .loginProcessingUrl("/api/auth/login")
+                        .loginPage("/login")
+                        .loginProcessingUrl("/login")
                         .usernameParameter("userId")
                         .passwordParameter("password")
-                        .successHandler((request, response, authentication) -> {
-                            response.setStatus(200);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"success\":true,\"message\":\"로그인되었습니다.\"}");
-                        })
+                        .successHandler(this::handleLoginSuccess)
                         .failureHandler((request, response, exception) -> {
-                            response.setStatus(401);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"success\":false,\"message\":\"아이디 또는 비밀번호가 올바르지 않습니다.\"}");
+                            if (isAjaxRequest(request)) {
+                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                                response.setCharacterEncoding("UTF-8");
+
+                                Map<String, Object> body = new HashMap<>();
+                                body.put("success", false);
+                                body.put("message", "아이디 또는 비밀번호가 올바르지 않습니다.");
+                                response.getWriter().write(objectMapper.writeValueAsString(body));
+                            } else {
+                                response.sendRedirect("/login?error");
+                            }
                         })
+                        .permitAll()
                 )
                 .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/api/auth/logout"))
+                        .logoutUrl("/logout")
                         .logoutSuccessHandler((request, response, authentication) -> {
-                            response.setStatus(200);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"success\":true,\"message\":\"로그아웃되었습니다.\"}");
+                            if (isAjaxRequest(request)) {
+                                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                                response.setCharacterEncoding("UTF-8");
+
+                                Map<String, Object> body = new HashMap<>();
+                                body.put("success", true);
+                                body.put("message", "로그아웃 완료");
+                                response.getWriter().write(objectMapper.writeValueAsString(body));
+                            } else {
+                                response.sendRedirect("/");
+                            }
                         })
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID", "XSRF-TOKEN")
+                        .permitAll()
                 )
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(401);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"success\":false,\"message\":\"로그인이 필요합니다.\"}");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(403);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"success\":false,\"message\":\"접근 권한이 없습니다.\"}");
-                        })
-                );
+                .httpBasic(Customizer.withDefaults());
 
         return http.build();
+    }
+
+    private void handleLoginSuccess(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    Authentication authentication) throws IOException {
+        if (isAjaxRequest(request)) {
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding("UTF-8");
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("success", true);
+            body.put("message", "로그인 성공");
+            body.put("username", authentication.getName());
+            response.getWriter().write(objectMapper.writeValueAsString(body));
+        } else {
+            response.sendRedirect("/");
+        }
+    }
+
+    private boolean isAjaxRequest(HttpServletRequest request) {
+        String accept = request.getHeader("Accept");
+        String requestedWith = request.getHeader("X-Requested-With");
+        String contentType = request.getContentType();
+
+        return "XMLHttpRequest".equalsIgnoreCase(requestedWith)
+                || (accept != null && accept.contains(MediaType.APPLICATION_JSON_VALUE))
+                || (contentType != null && contentType.contains(MediaType.APPLICATION_JSON_VALUE));
     }
 }

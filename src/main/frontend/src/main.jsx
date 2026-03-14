@@ -1,20 +1,10 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { RouterProvider } from 'react-router-dom'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { router } from './app/router'
-import { queryClient } from './app/queryClient'
-import { bootstrapCsrf } from './api/client'
-import './styles/index.css'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './styles.css';
 
-bootstrapCsrf()
-  .catch(() => {})
-  .finally(() => {
-    ReactDOM.createRoot(document.getElementById('root')).render(
-      <React.StrictMode>
-        <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-        </QueryClientProvider>
-      </React.StrictMode>,
-    )
-  })
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

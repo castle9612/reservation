@@ -1,24 +1,165 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(pageTitle=~{::title}, pageMainContent=~{::#main-content})}">
-
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <!-- 이 title 태그의 내용이 layout.html의 pageTitle 파라미터로 전달됩니다. -->
-    <title>예약 시스템 - 홈</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>예약 시스템</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+            background: #f4f4f4;
+            color: #222;
+        }
+
+        .navbar {
+            background: #2f2f2f;
+            color: white;
+            padding: 20px 40px;
+            border-bottom: 3px solid #1e90ff;
+        }
+
+        .nav-inner {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .menu {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+        }
+
+        .menu a, .menu button {
+            color: white;
+            text-decoration: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .menu button.logout-btn {
+            background: #1e90ff;
+            padding: 10px 16px;
+            border-radius: 6px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .hero h1 {
+            margin-bottom: 12px;
+            font-size: 32px;
+        }
+
+        .hero p {
+            color: #555;
+            font-size: 18px;
+        }
+
+        .btn-group {
+            margin-top: 24px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #1e90ff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .features {
+            margin-top: 30px;
+        }
+
+        .features h2 {
+            margin-bottom: 16px;
+        }
+
+        .features ul {
+            padding-left: 20px;
+            line-height: 1.9;
+        }
+    </style>
 </head>
-
 <body>
-<!-- 이 div의 내용이 layout.html의 pageMainContent 파라미터로 전달됩니다. -->
-<div id="main-content">
-    <h1>예약 시스템에 오신 것을 환영합니다!</h1>
-    <p class="text-center">본 시스템을 통해 다양한 서비스를 편리하게 예약하세요.</p>
+<nav class="navbar">
+    <div class="nav-inner">
+        <div class="brand">예약 시스템</div>
 
-    <div style="margin-top: 30px; text-align: center;">
-        <a th:href="@{/announcement/list}" class="btn">공지사항 보기</a>
-        <a th:href="@{/courses}" class="btn btn-secondary" style="margin-left:10px;">코스 안내 / 예약하기</a>
+        <div class="menu">
+            <a th:href="@{/}">홈</a>
+            <a th:href="@{/announcement/list}">공지사항</a>
+            <a th:href="@{/staff}">스태프</a>
+            <a th:href="@{/course/list}">코스안내</a>
+
+            <th:block th:if="${#authorization.expression('isAuthenticated()')}">
+                <a th:href="@{/mypage}">내 예약</a>
+                <span th:text="${#authentication.name}"></span>
+
+                <form th:action="@{/logout}" method="post" style="display:inline;">
+                    <input type="hidden"
+                           th:name="${_csrf.parameterName}"
+                           th:value="${_csrf.token}">
+                    <button type="submit" class="logout-btn">로그아웃</button>
+                </form>
+            </th:block>
+
+            <th:block th:unless="${#authorization.expression('isAuthenticated()')}">
+                <a th:href="@{/login}">로그인</a>
+                <a th:href="@{/signup}">회원가입</a>
+            </th:block>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="hero">
+        <h1>예약 시스템에 오신 것을 환영합니다!</h1>
+        <p>본 시스템을 통해 다양한 서비스를 편리하게 예약하세요.</p>
+
+        <div class="btn-group">
+            <a th:href="@{/announcement/list}" class="btn btn-primary">공지사항 보기</a>
+            <a th:href="@{/course/list}" class="btn btn-secondary">코스 안내 / 예약하기</a>
+        </div>
     </div>
 
-    <section style="margin-top: 40px; padding: 20px; background-color: #fff; border-radius: 8px;">
+    <div class="features">
         <h2>주요 기능</h2>
         <ul>
             <li>간편한 온라인 예약 (회원/비회원)</li>
@@ -26,7 +167,7 @@
             <li>비회원 예약 조회</li>
             <li>다양한 코스 및 서비스 안내</li>
         </ul>
-    </section>
+    </div>
 </div>
 </body>
 </html>
