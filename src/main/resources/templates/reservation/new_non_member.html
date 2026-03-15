@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#main-content})}">
 <head>
   <title>비회원 예약하기 - 예약 시스템</title>
 </head>
@@ -31,8 +31,9 @@
         <option value="">-- 코스를 선택하세요 --</option>
         <option th:each="course : ${courses}"
                 th:value="${course.id}"
-                th:text="${course.name} + ' (담당자: ' + ${course.staff.name} + ')'" <!-- 이 부분에서 course.staff.name 사용 -->
-        th:selected="${param.courseId != null and course.id == param.courseId}"></option> <!-- 따옴표 수정 -->
+                th:text="${course.name} + ' (담당자: ' + (course.staff != null ? course.staff.name : '미지정') + ')'"
+                th:selected="${param.courseId != null and T(java.lang.Long).valueOf(param.courseId[0]) == course.id}">
+        </option>
       </select>
     </div>
     <div class="form-group">

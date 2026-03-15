@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
-      th:replace="~{layout/layout :: layout(~{::title}, ~{:: #main-content})}">
+      th:replace="~{layout/layout :: layout(~{::title}, ~{::#main-content})}">
 <head>
   <title th:text="${courseDTO.id == 0 ? '새 코스 등록' : '코스 수정'} + ' - 예약 시스템'"></title>
 </head>
@@ -10,8 +10,8 @@
 
   <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
   <!-- 유효성 검사 에러 메시지 표시 (필요시) -->
-  <div th:if="${#fields.hasErrors('${courseDTO.*}')}" class="alert alert-danger">
-    <p th:each="err : ${#fields.errors('${courseDTO.*}')}" th:text="${err}"></p>
+  <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger">
+    <p th:each="err : ${#fields.allErrors()}" th:text="${err}"></p>
   </div>
 
 

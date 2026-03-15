@@ -1,18 +1,108 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       th:fragment="layout(title, content)">
 <head>
     <meta charset="UTF-8">
-    <title th:replace="${title}">Reservation</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:replace="${title}">예약 시스템</title>
 
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/4.6.2/css/bootstrap.min.css}">
-    <script th:src="@{/webjars/jquery/3.7.1/jquery.min.js}"></script>
-    <script th:src="@{/webjars/bootstrap/4.6.2/js/bootstrap.bundle.min.js}"></script>
+    <style>
+        body {
+            background: linear-gradient(rgba(245,248,246,0.82), rgba(245,248,246,0.92)),
+                        url('https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1600&q=80') center/cover fixed no-repeat;
+            min-height: 100vh;
+        }
+        .top-nav {
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        }
+        .brand-title {
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            color: #40635b;
+        }
+        .hero-shell, .page-shell {
+            background: rgba(255,255,255,0.90);
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+        .menu-chip {
+            border-radius: 999px;
+            padding: 8px 14px;
+            margin-right: 8px;
+            color: #35544d !important;
+            font-weight: 500;
+        }
+        .menu-chip:hover {
+            background: #eef5f2;
+            text-decoration: none;
+        }
+        .cta-btn {
+            border-radius: 999px;
+            padding: 10px 18px;
+        }
+    </style>
 </head>
 <body>
-<div class="container mt-4">
-    <div th:replace="${content}"></div>
+
+<nav class="navbar navbar-expand-lg navbar-light top-nav">
+    <div class="container">
+        <a class="navbar-brand brand-title" th:href="@{/}">THERAPY RESERVATION</a>
+
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse mt-2 mt-lg-0" id="mainNav">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item"><a class="nav-link menu-chip" th:href="@{/}">홈</a></li>
+                <li class="nav-item"><a class="nav-link menu-chip" th:href="@{/announcement/list}">공지사항</a></li>
+                <li class="nav-item"><a class="nav-link menu-chip" th:href="@{/staff}">스태프</a></li>
+                <li class="nav-item"><a class="nav-link menu-chip" th:href="@{/courses}">코스안내</a></li>
+
+                <!-- 비회원 기능은 로그인 여부와 무관하게 노출 -->
+                <li class="nav-item"><a class="nav-link menu-chip" th:href="@{/reservations/new/non-member}">비회원예약</a></li>
+                <li class="nav-item"><a class="nav-link menu-chip" th:href="@{/reservations/search}">비회원예약조회</a></li>
+
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <a class="nav-link menu-chip" th:href="@{/reservations/new/member}">회원예약</a>
+                </li>
+                <li class="nav-item" sec:authorize="isAuthenticated()">
+                    <a class="nav-link menu-chip" th:href="@{/reservations}">내 예약</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link menu-chip" th:href="@{/courses/new}">코스등록</a>
+                </li>
+                <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+                    <a class="nav-link menu-chip" th:href="@{/admin/announcements/new}">공지등록</a>
+                </li>
+            </ul>
+
+            <div class="d-flex align-items-center">
+                <a sec:authorize="isAnonymous()" th:href="@{/login}" class="btn btn-outline-secondary cta-btn mr-2">로그인</a>
+                <a sec:authorize="isAnonymous()" th:href="@{/signup}" class="btn btn-outline-success cta-btn mr-2">회원가입</a>
+
+                <a sec:authorize="isAuthenticated()" th:href="@{/mypage}" class="btn btn-outline-primary cta-btn mr-2">마이페이지</a>
+
+                <form sec:authorize="isAuthenticated()" th:action="@{/logout}" method="post" class="mb-0">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="btn btn-dark cta-btn">로그아웃</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container my-4">
+    <div class="page-shell p-4">
+        <th:block th:replace="${content}"></th:block>
+    </div>
 </div>
+
+<script th:src="@{/webjars/jquery/3.7.1/jquery.min.js}"></script>
+<script th:src="@{/webjars/bootstrap/4.6.2/js/bootstrap.bundle.min.js}"></script>
 </body>
 </html>

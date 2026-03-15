@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>직원 상세</title>
+</head>
+<body>
+<div th:replace="~{layout/layout :: layout(~{::title}, ~{::#main-content})}">
+    <main id="main-content">
+        <h2 class="mb-4">직원 상세</h2>
+
+        <div class="card">
+            <div class="card-body">
+                <h4 th:text="${staff.name}">직원명</h4>
+
+                <div th:if="${staff.profilePicture != null}">
+                    <img th:src="@{${staff.profilePicture}}" alt="프로필" style="max-width:300px;" class="img-fluid mt-3">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <a th:href="@{/staff}" class="btn btn-secondary">목록</a>
+        </div>
+    </main>
+</div>
+</body>
+</html>
