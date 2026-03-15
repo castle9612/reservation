@@ -62,7 +62,13 @@ public class WebSecurityConfig {
                                 "/announcement/**",
                                 "/staff",
                                 "/staff/",
-                                "/staff/*"
+                                "/staff/*",
+                                "/reservations/new/non-member",
+                                "/reservations/save",
+                                "/reservations/search",
+                                "/reservations/search/result"
+                                ,"/reservations/save",
+                                "/reservations/new/non-member"
                         ).permitAll()
 
                         .requestMatchers(HttpMethod.GET,
