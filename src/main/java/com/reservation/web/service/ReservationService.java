@@ -19,15 +19,13 @@ public class ReservationService {
 
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_CONFIRMED = "CONFIRMED";
-    private static final String STATUS_CANCELLED = "CANCELLED";
-    private static final String STATUS_REJECTED = "REJECTED";
     private static final Set<String> ACTIVE_STATUSES = Set.of(STATUS_PENDING, STATUS_CONFIRMED);
 
     private final ReservationRepository reservationRepository;
     private final CourseRepository courseRepository;
 
-    private final int MAX_RESERVATIONS_PER_USER = 2;
-    private final int DEFAULT_BLOCK_MINUTES = 30;
+    private final int maxReservationsPerUser = 2;
+    private final int defaultBlockMinutes = 30;
 
     public ReservationService(ReservationRepository reservationRepository, CourseRepository courseRepository) {
         this.reservationRepository = reservationRepository;
@@ -50,7 +48,7 @@ public class ReservationService {
         }
 
         if (!isTimeSlotAvailable(reservationDTO.getReservationDateTime(), course, null)) {
-            throw new IllegalStateException("해당 시간대는 이미 예약이 불가능합니다.");
+            throw new IllegalStateException("해당 시간에는 이미 예약이 있어 진행할 수 없습니다.");
         }
 
         ReservationEntity reservationEntity = new ReservationEntity();
@@ -71,7 +69,7 @@ public class ReservationService {
     @Transactional
     public ReservationEntity updateReservation(String id, ReservationDTO updatedReservationDTO) {
         ReservationEntity existingReservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 예약 ID: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 예약 ID입니다: " + id));
 
         CourseEntity targetCourse = existingReservation.getCourse();
         if (updatedReservationDTO.getCourseId() != null) {
@@ -83,7 +81,7 @@ public class ReservationService {
                 : existingReservation.getReservationDateTime();
 
         if (!isTimeSlotAvailable(targetDateTime, targetCourse, existingReservation.getId())) {
-            throw new IllegalStateException("수정하려는 시간대는 이미 예약이 불가능합니다.");
+            throw new IllegalStateException("수정하려는 시간에는 이미 예약이 있어 진행할 수 없습니다.");
         }
 
         existingReservation.setReservationDateTime(targetDateTime);
@@ -130,8 +128,8 @@ public class ReservationService {
 
     public boolean isTimeSlotAvailable(LocalDateTime reservationDateTime) {
         List<ReservationEntity> conflictingReservations = reservationRepository.findByReservationDateTimeBetweenAndStatusIn(
-                reservationDateTime.minusMinutes(DEFAULT_BLOCK_MINUTES),
-                reservationDateTime.plusMinutes(DEFAULT_BLOCK_MINUTES),
+                reservationDateTime.minusMinutes(defaultBlockMinutes),
+                reservationDateTime.plusMinutes(defaultBlockMinutes),
                 ACTIVE_STATUSES
         );
         return conflictingReservations.isEmpty();
@@ -153,8 +151,7 @@ public class ReservationService {
                 continue;
             }
 
-            CourseEntity candidateCourse = candidate.getCourse();
-            int candidateDuration = resolveBlockMinutes(candidateCourse);
+            int candidateDuration = resolveBlockMinutes(candidate.getCourse());
             LocalDateTime candidateStart = candidate.getReservationDateTime();
             LocalDateTime candidateEnd = candidateStart.plusMinutes(candidateDuration);
 
@@ -168,7 +165,7 @@ public class ReservationService {
     }
 
     public void blockReservationTime(LocalDateTime blockTime) {
-        // 기존 시그니처 유지. 필요 시 관리자 차단 테이블 추가해서 확장.
+        // 관리자 전용 별도 차단 테이블이 필요할 때 확장 예정입니다.
     }
 
     public List<ReservationEntity> findByUserId(String userId) {
@@ -201,7 +198,7 @@ public class ReservationService {
 
     private CourseEntity getCourse(Long courseId) {
         return courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 코스 ID: " + courseId));
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 코스 ID입니다: " + courseId));
     }
 
     private void validateReservationRequest(ReservationDTO reservationDTO) {
@@ -218,25 +215,25 @@ public class ReservationService {
 
     private void validateGuestReservationFields(ReservationDTO reservationDTO) {
         if (trimToNull(reservationDTO.getName()) == null) {
-            throw new IllegalArgumentException("예약자명은 비회원 예약 시 필수 항목입니다.");
+            throw new IllegalArgumentException("비회원 예약에는 예약자명이 필요합니다.");
         }
         if (trimToNull(reservationDTO.getPhoneNumber()) == null) {
-            throw new IllegalArgumentException("연락처는 비회원 예약 시 필수 항목입니다.");
+            throw new IllegalArgumentException("비회원 예약에는 연락처가 필요합니다.");
         }
     }
 
     private void validateMemberReservationLimit(String userId) {
         int activeReservationCount = reservationRepository.countByUserIdAndStatusIn(userId, ACTIVE_STATUSES);
-        if (activeReservationCount >= MAX_RESERVATIONS_PER_USER) {
-            throw new IllegalStateException("회원당 최대 " + MAX_RESERVATIONS_PER_USER + "개의 진행 중 예약만 가능합니다.");
+        if (activeReservationCount >= maxReservationsPerUser) {
+            throw new IllegalStateException("회원은 최대 " + maxReservationsPerUser + "개의 진행 중 예약만 가질 수 있습니다.");
         }
     }
 
     private int resolveBlockMinutes(CourseEntity course) {
         if (course == null || course.getDurationMinutes() == null || course.getDurationMinutes() <= 0) {
-            return DEFAULT_BLOCK_MINUTES;
+            return defaultBlockMinutes;
         }
-        return Math.max(course.getDurationMinutes(), DEFAULT_BLOCK_MINUTES);
+        return Math.max(course.getDurationMinutes(), defaultBlockMinutes);
     }
 
     private String defaultStatus(String status) {

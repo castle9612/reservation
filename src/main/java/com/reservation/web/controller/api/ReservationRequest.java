@@ -14,8 +14,8 @@ public class ReservationRequest {
     @NotNull(message = "코스는 필수입니다.")
     private Long courseId;
 
-    @NotNull(message = "예약 희망 일시는 필수입니다.")
-    @Future(message = "예약 희망 일시는 현재보다 이후여야 합니다.")
+    @NotNull(message = "예약 일시는 필수입니다.")
+    @Future(message = "예약 일시는 현재보다 이후여야 합니다.")
     private LocalDateTime reservationDateTime;
 
     private String name;

@@ -2,88 +2,85 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout/layout :: layout(~{::title}, ~{::#main-content})}">
 <head>
-  <title th:text="${courseDTO.id == 0 ? '새 코스 등록' : '코스 수정'} + ' - 예약 시스템'"></title>
+  <title th:text="${courseDTO.id == 0 ? '코스 등록' : '코스 수정'} + ' - 예약 서비스'">코스 등록</title>
 </head>
 <body>
 <div id="main-content">
-  <h1 th:text="${courseDTO.id == 0 ? '새 코스 등록' : '코스 수정'}">코스 정보 입력</h1>
+  <h1 th:text="${courseDTO.id == 0 ? '신규 코스 등록' : '코스 수정'}">코스 정보 입력</h1>
 
   <div th:if="${errorMessage}" class="alert alert-danger" role="alert" th:text="${errorMessage}"></div>
-  <!-- 유효성 검사 에러 메시지 표시 (필요시) -->
-  <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger">
-    <p th:each="err : ${#fields.allErrors()}" th:text="${err}"></p>
-  </div>
-
 
   <form th:object="${courseDTO}"
-        th:action="@{${courseDTO.id == 0} ? '/courses' : '/courses/edit/' + ${courseDTO.id}}"
-        method="post" class="needs-validation" novalidate>
-    <!-- CSRF 토큰 -->
-    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
-    <!-- 수정 시 ID -->
-    <input type="hidden" th:if="${courseDTO.id != 0}" th:field="*{id}" />
+        th:action="${courseDTO.id == 0} ? @{/courses} : @{/courses/edit/{id}(id=${courseDTO.id})}"
+        method="post"
+        class="needs-validation"
+        novalidate>
+    <div th:if="${#fields.hasAnyErrors()}" class="alert alert-danger">
+      <p th:each="err : ${#fields.allErrors()}" th:text="${err}"></p>
+    </div>
+
+    <input type="hidden" th:if="${_csrf}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+    <input type="hidden" th:if="${courseDTO.id != 0}" th:field="*{id}">
 
     <div class="form-group mb-3">
       <label for="name" class="form-label">코스명</label>
-      <input type="text" id="name" th:field="*{name}" class="form-control" required />
-      <div class="invalid-feedback">코스명을 입력해주세요.</div>
+      <input type="text" id="name" th:field="*{name}" class="form-control" required>
+      <div class="invalid-feedback">코스명을 입력해 주세요.</div>
       <small th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="text-danger"></small>
     </div>
 
     <div class="form-group mb-3">
-      <label for="staffId" class="form-label">담당자</label>
+      <label for="staffId" class="form-label">담당 직원</label>
       <select id="staffId" th:field="*{staffId}" class="form-select" required>
-        <option value="">-- 담당자 선택 --</option>
-        <!-- 컨트롤러에서 allStaff (List<StaffDTO>)를 모델에 추가해야 함 -->
+        <option value="">직원을 선택해 주세요</option>
         <option th:each="staff : ${allStaff}" th:value="${staff.id}" th:text="${staff.name}"></option>
       </select>
-      <div class="invalid-feedback">담당자를 선택해주세요.</div>
+      <div class="invalid-feedback">담당 직원을 선택해 주세요.</div>
       <small th:if="${#fields.hasErrors('staffId')}" th:errors="*{staffId}" class="text-danger"></small>
     </div>
 
     <div class="form-group mb-3">
-      <label for="durationMinutes" class="form-label">소요시간 (분)</label>
-      <input type="number" id="durationMinutes" th:field="*{durationMinutes}" class="form-control" min="1" required />
-      <div class="invalid-feedback">소요시간(분)을 입력해주세요. (1분 이상)</div>
+      <label for="durationMinutes" class="form-label">소요 시간(분)</label>
+      <input type="number" id="durationMinutes" th:field="*{durationMinutes}" class="form-control" min="1" required>
+      <div class="invalid-feedback">소요 시간을 입력해 주세요.</div>
       <small th:if="${#fields.hasErrors('durationMinutes')}" th:errors="*{durationMinutes}" class="text-danger"></small>
     </div>
 
     <div class="form-group mb-3">
       <label for="memberPrice" class="form-label">회원가</label>
-      <input type="number" id="memberPrice" th:field="*{memberPrice}" class="form-control" min="0" step="100" required />
-      <div class="invalid-feedback">회원가를 입력해주세요. (0 이상)</div>
+      <input type="number" id="memberPrice" th:field="*{memberPrice}" class="form-control" min="0" step="100" required>
+      <div class="invalid-feedback">회원가를 입력해 주세요.</div>
       <small th:if="${#fields.hasErrors('memberPrice')}" th:errors="*{memberPrice}" class="text-danger"></small>
     </div>
 
-    <div class="form-group mb-3">
+    <div class="form-group mb-4">
       <label for="nonMemberPrice" class="form-label">비회원가</label>
-      <input type="number" id="nonMemberPrice" th:field="*{nonMemberPrice}" class="form-control" min="0" step="100" required />
-      <div class="invalid-feedback">비회원가를 입력해주세요. (0 이상)</div>
+      <input type="number" id="nonMemberPrice" th:field="*{nonMemberPrice}" class="form-control" min="0" step="100" required>
+      <div class="invalid-feedback">비회원가를 입력해 주세요.</div>
       <small th:if="${#fields.hasErrors('nonMemberPrice')}" th:errors="*{nonMemberPrice}" class="text-danger"></small>
     </div>
 
     <div class="text-right mt-4">
       <a th:href="@{/courses}" class="btn btn-secondary mr-2">취소</a>
-      <button type="submit" class="btn btn-primary" th:text="${courseDTO.id == 0 ? '등록하기' : '수정하기'}"></button>
+      <button type="submit" class="btn btn-primary" th:text="${courseDTO.id == 0 ? '등록하기' : '수정하기'}">등록하기</button>
     </div>
   </form>
 </div>
+
 <script>
-  // Bootstrap 5 기본 유효성 검사 스크립트 (선택적)
   (function () {
-    'use strict'
-    var forms = document.querySelectorAll('.needs-validation')
-    Array.prototype.slice.call(forms)
-            .forEach(function (form) {
-              form.addEventListener('submit', function (event) {
-                if (!form.checkValidity()) {
-                  event.preventDefault()
-                  event.stopPropagation()
-                }
-                form.classList.add('was-validated')
-              }, false)
-            })
-  })()
+    'use strict';
+    var forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  })();
 </script>
 </body>
 </html>

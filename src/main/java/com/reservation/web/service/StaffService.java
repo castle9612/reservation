@@ -3,18 +3,33 @@ package com.reservation.web.service;
 import com.reservation.web.dto.StaffDTO;
 import com.reservation.web.entity.StaffEntity;
 import com.reservation.web.repository.StaffRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class StaffService {
 
     private final StaffRepository staffRepository;
+    private final Path uploadRoot;
+
+    public StaffService(StaffRepository staffRepository,
+                        @Value("${file.upload-dir}") String uploadDir) throws IOException {
+        this.staffRepository = staffRepository;
+        this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
+        Files.createDirectories(this.uploadRoot);
+    }
 
     private StaffDTO convertEntityToDTO(StaffEntity staffEntity) {
         return new StaffDTO(
@@ -51,7 +66,7 @@ public class StaffService {
     }
 
     @Transactional
-    public StaffEntity saveStaff(StaffDTO staffDTO) {
+    public StaffEntity saveStaff(StaffDTO staffDTO, MultipartFile profileImage) throws IOException {
         StaffEntity staffEntity;
         if (staffDTO.getId() != null) {
             staffEntity = staffRepository.findById(staffDTO.getId())
@@ -60,7 +75,14 @@ public class StaffService {
             staffEntity = new StaffEntity();
         }
         staffEntity.setName(staffDTO.getName());
-        staffEntity.setProfilePicture(staffDTO.getProfilePicture());
+
+        if (profileImage != null && !profileImage.isEmpty()) {
+            String storedFileName = storeProfileImage(profileImage);
+            staffEntity.setProfilePicture("/uploads/" + storedFileName);
+        } else if (staffDTO.getProfilePicture() != null && !staffDTO.getProfilePicture().isBlank()) {
+            staffEntity.setProfilePicture(staffDTO.getProfilePicture());
+        }
+
         return staffRepository.save(staffEntity);
     }
 
@@ -70,5 +92,25 @@ public class StaffService {
             throw new IllegalArgumentException("삭제할 직원을 찾을 수 없습니다: " + id);
         }
         staffRepository.deleteById(id);
+    }
+
+    private String storeProfileImage(MultipartFile profileImage) throws IOException {
+        String originalFileName = StringUtils.cleanPath(profileImage.getOriginalFilename() == null ? "" : profileImage.getOriginalFilename());
+        String extension = "";
+        int dotIndex = originalFileName.lastIndexOf('.');
+        if (dotIndex >= 0 && dotIndex < originalFileName.length() - 1) {
+            extension = originalFileName.substring(dotIndex);
+        }
+
+        String storedFileName = UUID.randomUUID() + extension;
+        Path target = uploadRoot.resolve(storedFileName).normalize();
+        if (!target.startsWith(uploadRoot)) {
+            throw new IOException("잘못된 업로드 경로입니다.");
+        }
+
+        try (var inputStream = profileImage.getInputStream()) {
+            Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+        return storedFileName;
     }
 }

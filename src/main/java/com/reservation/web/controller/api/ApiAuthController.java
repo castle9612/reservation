@@ -21,13 +21,11 @@ public class ApiAuthController {
 
     @GetMapping("/csrf")
     public ApiResponse<CsrfTokenResponse> csrf(CsrfToken csrfToken) {
-        return ApiResponse.ok(
-                new CsrfTokenResponse(
-                        csrfToken.getToken(),
-                        csrfToken.getHeaderName(),
-                        csrfToken.getParameterName()
-                )
-        );
+        return ApiResponse.ok(new CsrfTokenResponse(
+                csrfToken.getToken(),
+                csrfToken.getHeaderName(),
+                csrfToken.getParameterName()
+        ));
     }
 
     @GetMapping("/me")

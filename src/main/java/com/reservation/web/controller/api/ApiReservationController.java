@@ -1,13 +1,17 @@
 package com.reservation.web.controller.api;
 
 import com.reservation.web.dto.ReservationDTO;
-import com.reservation.web.entity.ReservationEntity;
 import com.reservation.web.service.ReservationService;
 import com.reservation.web.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -39,10 +43,10 @@ public class ApiReservationController {
     @PostMapping("/guest")
     public ApiResponse<Void> createGuestReservation(@Valid @RequestBody ReservationRequest request) {
         if (request.getName() == null || request.getName().isBlank()) {
-            throw new IllegalArgumentException("비회원 예약 시 이름은 필수입니다.");
+            throw new IllegalArgumentException("비회원 예약은 이름이 필요합니다.");
         }
         if (request.getPhoneNumber() == null || request.getPhoneNumber().isBlank()) {
-            throw new IllegalArgumentException("비회원 예약 시 연락처는 필수입니다.");
+            throw new IllegalArgumentException("비회원 예약은 전화번호가 필요합니다.");
         }
 
         ReservationDTO dto = new ReservationDTO();

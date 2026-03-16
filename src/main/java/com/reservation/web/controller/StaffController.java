@@ -8,7 +8,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
@@ -52,6 +58,7 @@ public class StaffController {
     @PostMapping
     public String saveStaff(@Valid @ModelAttribute("staffDTO") StaffDTO staffDTO,
                             BindingResult bindingResult,
+                            @RequestParam(name = "profileImage", required = false) MultipartFile profileImage,
                             RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.staffDTO", bindingResult);
@@ -60,7 +67,7 @@ public class StaffController {
         }
 
         try {
-            staffService.saveStaff(staffDTO);
+            staffService.saveStaff(staffDTO, profileImage);
             redirectAttributes.addFlashAttribute("successMessage", "스태프가 성공적으로 등록되었습니다.");
             return "redirect:/staff";
         } catch (Exception e) {
@@ -90,6 +97,7 @@ public class StaffController {
     public String updateStaff(@PathVariable Long staffId,
                               @Valid @ModelAttribute("staffDTO") StaffDTO staffDTO,
                               BindingResult bindingResult,
+                              @RequestParam(name = "profileImage", required = false) MultipartFile profileImage,
                               RedirectAttributes redirectAttributes) {
         if (bindingResult.hasErrors()) {
             redirectAttributes.addFlashAttribute("org.springframework.validation.BindingResult.staffDTO", bindingResult);
@@ -99,7 +107,7 @@ public class StaffController {
 
         try {
             staffDTO.setId(staffId);
-            staffService.saveStaff(staffDTO);
+            staffService.saveStaff(staffDTO, profileImage);
             redirectAttributes.addFlashAttribute("successMessage", "스태프 정보가 성공적으로 수정되었습니다.");
             return "redirect:/staff";
         } catch (Exception e) {

@@ -30,13 +30,12 @@ public class UserService implements UserDetailsService {
 
         String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
         userDTO.setPassword(encodedPassword);
-        userDTO.setRole(normalizeRole(userDTO.getRole()));
+        userDTO.setRole("USER");
         userDTO.setPhoneNumber(normalizePhoneNumber(userDTO.getPhoneNumber()));
 
         UserEntity userEntity = UserEntity.toUserEntity(userDTO);
         userRepository.save(userEntity);
     }
-
 
     @Override
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {

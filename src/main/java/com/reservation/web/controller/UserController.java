@@ -54,7 +54,7 @@ public class UserController {
         }
 
         if (signupSuccess != null) {
-            model.addAttribute("signupSuccessMessage", "회원가입이 완료되었습니다. 로그인해주세요.");
+            model.addAttribute("signupSuccessMessage", "회원가입이 완료되었습니다. 로그인해 주세요.");
         }
 
         if (logout != null) {
@@ -66,6 +66,6 @@ public class UserController {
 
     @GetMapping({"/", "/index"})
     public String index() {
-        return "index";
+        return "forward:/react-app/index.html";
     }
 }

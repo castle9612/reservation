@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -39,7 +40,9 @@ public class WebSecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/admin/announcements/uploadSummernoteImageFile")
+                                new AntPathRequestMatcher("/admin/announcements/uploadSummernoteImageFile"),
+                                new AntPathRequestMatcher("/api/auth/signup"),
+                                new AntPathRequestMatcher("/signup")
                         )
                 )
                 .authorizeHttpRequests(auth -> auth
@@ -53,11 +56,11 @@ public class WebSecurityConfig {
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
+                                "/react-app/**",
+                                "/uploads/**",
                                 "/webjars/**",
-                                "/favicon.ico",
-                                "/uploads/**"
+                                "/favicon.ico"
                         ).permitAll()
-
                         .requestMatchers(
                                 "/announcement/**",
                                 "/staff",
@@ -67,10 +70,7 @@ public class WebSecurityConfig {
                                 "/reservations/save",
                                 "/reservations/search",
                                 "/reservations/search/result"
-                                ,"/reservations/save",
-                                "/reservations/new/non-member"
                         ).permitAll()
-
                         .requestMatchers(HttpMethod.GET,
                                 "/api/auth/csrf",
                                 "/api/auth/me",
@@ -79,19 +79,15 @@ public class WebSecurityConfig {
                                 "/api/courses/*",
                                 "/api/reservations/search"
                         ).permitAll()
-
                         .requestMatchers(HttpMethod.POST,
                                 "/signup",
                                 "/api/auth/signup",
                                 "/api/reservations/guest"
                         ).permitAll()
-
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/staff/new", "/staff/edit/**", "/staff/delete/**").hasRole("ADMIN")
-
                         .requestMatchers(HttpMethod.GET, "/api/reservations/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/reservations/member").authenticated()
-
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -102,14 +98,7 @@ public class WebSecurityConfig {
                         .successHandler(this::handleLoginSuccess)
                         .failureHandler((request, response, exception) -> {
                             if (isAjaxRequest(request)) {
-                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                                response.setCharacterEncoding("UTF-8");
-
-                                Map<String, Object> body = new HashMap<>();
-                                body.put("success", false);
-                                body.put("message", "아이디 또는 비밀번호가 올바르지 않습니다.");
-                                response.getWriter().write(objectMapper.writeValueAsString(body));
+                                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, false, "아이디 또는 비밀번호가 올바르지 않습니다.");
                             } else {
                                 request.getSession().setAttribute("errorMessage", "아이디 또는 비밀번호가 올바르지 않습니다.");
                                 response.sendRedirect("/login?error");
@@ -118,17 +107,13 @@ public class WebSecurityConfig {
                         .permitAll()
                 )
                 .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout", "POST"))
+                        .logoutRequestMatcher(new OrRequestMatcher(
+                                new AntPathRequestMatcher("/logout", "POST"),
+                                new AntPathRequestMatcher("/api/auth/logout", "POST")
+                        ))
                         .logoutSuccessHandler((request, response, authentication) -> {
                             if (isAjaxRequest(request)) {
-                                response.setStatus(HttpServletResponse.SC_OK);
-                                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                                response.setCharacterEncoding("UTF-8");
-
-                                Map<String, Object> body = new HashMap<>();
-                                body.put("success", true);
-                                body.put("message", "로그아웃되었습니다.");
-                                response.getWriter().write(objectMapper.writeValueAsString(body));
+                                writeJson(response, HttpServletResponse.SC_OK, true, "로그아웃되었습니다.");
                             } else {
                                 response.sendRedirect("/login?logout");
                             }
@@ -140,20 +125,14 @@ public class WebSecurityConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             if (isAjaxRequest(request) || request.getRequestURI().startsWith("/api/")) {
-                                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                                response.setCharacterEncoding("UTF-8");
-                                response.getWriter().write("{\"success\":false,\"message\":\"로그인이 필요합니다.\"}");
+                                writeJson(response, HttpServletResponse.SC_UNAUTHORIZED, false, "로그인이 필요합니다.");
                             } else {
                                 response.sendRedirect("/login");
                             }
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             if (isAjaxRequest(request) || request.getRequestURI().startsWith("/api/")) {
-                                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                                response.setCharacterEncoding("UTF-8");
-                                response.getWriter().write("{\"success\":false,\"message\":\"접근 권한이 없습니다.\"}");
+                                writeJson(response, HttpServletResponse.SC_FORBIDDEN, false, "접근 권한이 없습니다.");
                             } else {
                                 response.sendRedirect("/test?denied");
                             }
@@ -180,6 +159,17 @@ public class WebSecurityConfig {
         } else {
             response.sendRedirect("/");
         }
+    }
+
+    private void writeJson(HttpServletResponse response, int status, boolean success, String message) throws IOException {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", success);
+        body.put("message", message);
+        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 
     private boolean isAjaxRequest(HttpServletRequest request) {

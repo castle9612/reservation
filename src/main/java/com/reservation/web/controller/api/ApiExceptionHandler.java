@@ -37,6 +37,6 @@ public class ApiExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.fail("서버 내부 오류가 발생했습니다."));
+                .body(ApiResponse.fail("서버 처리 중 오류가 발생했습니다."));
     }
 }
