@@ -75,3 +75,5 @@ Environment example:
 - React build output is served by Spring Boot from `src/main/resources/static/react-app`
 - user-facing pages use React
 - admin pages use existing server-rendered templates
+
+made by msy
