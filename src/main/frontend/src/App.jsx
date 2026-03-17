@@ -6,6 +6,43 @@ const heroImages = [
   'https://images.pexels.com/photos/3757942/pexels-photo-3757942.jpeg?auto=compress&cs=tinysrgb&w=1400',
 ];
 
+const adminPages = [
+  ['admin-dashboard', '대시보드'],
+  ['admin-users', '회원 관리'],
+  ['admin-reservations', '예약 관리'],
+  ['admin-courses', '프로그램 관리'],
+  ['admin-staff', '스태프 관리'],
+  ['admin-announcements', '공지 관리'],
+];
+
+const viewPathMap = {
+  home: '/',
+  courses: '/programs',
+  announcements: '/announcements',
+  staff: '/therapists',
+  reviews: '/reviews',
+  'guest-booking': '/reservation/guest',
+  'guest-search': '/reservation/search',
+  'member-booking': '/reservation/member',
+  'my-reservations': '/reservation/my',
+  mypage: '/mypage',
+  login: '/login',
+  signup: '/signup',
+  admin: '/admin',
+  'admin-dashboard': '/admin/dashboard',
+  'admin-users': '/admin/users',
+  'admin-reservations': '/admin/reservations',
+  'admin-courses': '/admin/courses',
+  'admin-staff': '/admin/staff',
+  'admin-announcements': '/admin/announcements',
+};
+
+function resolveViewFromPath(pathname) {
+  const normalized = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+  const matchedEntry = Object.entries(viewPathMap).find(([, path]) => path === normalized);
+  return matchedEntry?.[0] || 'home';
+}
+
 const adminLinks = [
   ['/admin/dashboard', '대시보드'],
   ['/admin/users', '회원 관리'],
@@ -33,7 +70,9 @@ const myPageInit = { userId: '', userName: '', userEmail: '', phoneNumber: '', p
 const reviewInit = { reviewerName: '', rating: 5, content: '', images: [] };
 
 function App() {
-  const [view, setView] = useState('home');
+  const brandLogoUrl = `${import.meta.env.BASE_URL}brand-logo.png`;
+  const [brandLogoVisible, setBrandLogoVisible] = useState(true);
+  const [view, setView] = useState(() => resolveViewFromPath(window.location.pathname));
   const [loading, setLoading] = useState(true);
   const [csrf, setCsrf] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -45,6 +84,8 @@ function App() {
   const [reviewSummary, setReviewSummary] = useState({ averageRating: 0, totalReviews: 0, ratingCounts: {}, recentImages: [] });
   const [myReservations, setMyReservations] = useState([]);
   const [guestReservations, setGuestReservations] = useState([]);
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [adminReservations, setAdminReservations] = useState([]);
   const [myPage, setMyPage] = useState(myPageInit);
   const [searchPhone, setSearchPhone] = useState('');
   const [loginForm, setLoginForm] = useState(loginInit);
@@ -59,6 +100,12 @@ function App() {
 
   useEffect(() => {
     bootstrap();
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => setView(resolveViewFromPath(window.location.pathname));
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   async function bootstrap() {
@@ -81,7 +128,11 @@ function App() {
       applyReviewState(reviewData);
 
       if (me?.authenticated) {
-        await Promise.all([loadMyReservations(), loadMyPage()]);
+        const followUpTasks = [loadMyReservations(), loadMyPage()];
+        if (me?.role === 'ROLE_ADMIN') {
+          followUpTasks.push(loadAdminUsers(), loadAdminReservations());
+        }
+        await Promise.all(followUpTasks);
       }
     } catch (error) {
       setNotice({ type: 'error', text: error.message || '화면을 불러오지 못했습니다.' });
@@ -141,6 +192,14 @@ function App() {
     setMyPage((await api('/api/mypage')) || myPageInit);
   }
 
+  async function loadAdminUsers() {
+    setAdminUsers((await api('/api/admin/users')) || []);
+  }
+
+  async function loadAdminReservations() {
+    setAdminReservations((await api('/api/admin/reservations')) || []);
+  }
+
   async function refreshReviews() {
     applyReviewState(await api('/api/reviews'));
   }
@@ -157,7 +216,13 @@ function App() {
     }));
   }
 
-  function jump(next) {
+  function jump(next, options = {}) {
+    const nextPath = viewPathMap[next] || '/';
+    if (options.replace) {
+      window.history.replaceState({}, '', nextPath);
+    } else if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+    }
     setView(next);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -206,7 +271,11 @@ function App() {
       const me = await api('/api/auth/me');
       setAuth(me || { authenticated: false, userId: null, role: null });
       setLoginForm(loginInit);
-      await Promise.all([loadMyReservations(), loadMyPage(), refreshReviews()]);
+      const followUpTasks = [loadMyReservations(), loadMyPage(), refreshReviews()];
+      if (me?.role === 'ROLE_ADMIN') {
+        followUpTasks.push(loadAdminUsers(), loadAdminReservations());
+      }
+      await Promise.all(followUpTasks);
       setNotice({ type: 'success', text: '로그인되었습니다.' });
       jump('home');
     } catch (error) {
@@ -346,6 +415,8 @@ function App() {
       setAuth({ authenticated: false, userId: null, role: null });
       setMyPage(myPageInit);
       setMyReservations([]);
+      setAdminUsers([]);
+      setAdminReservations([]);
       setNotice({ type: 'success', text: '로그아웃되었습니다.' });
       jump('home');
       await fetchCsrf();
@@ -371,8 +442,23 @@ function App() {
       <header className="site-header">
         <div className="header-row">
           <div className="brand-block">
-            <span className="brand-kicker">CALM THERAPY</span>
-            <strong>평온한 회복의 예약 라운지</strong>
+            <img
+              className="brand-logo"
+              src={brandLogoUrl}
+              alt="라본 바디 테라피 로고"
+              style={{ display: brandLogoVisible ? 'block' : 'none' }}
+              onLoad={() => setBrandLogoVisible(true)}
+              onError={(event) => {
+                setBrandLogoVisible(false);
+                event.currentTarget.style.display = 'none';
+              }}
+            />
+            {!brandLogoVisible && (
+              <>
+                <span className="brand-kicker">CALM THERAPY</span>
+                <strong>평온한 회복의 예약 라운지</strong>
+              </>
+            )}
           </div>
 
           <nav className="header-nav">
@@ -401,7 +487,7 @@ function App() {
             </div>
 
             {auth.authenticated && <button className={`nav-link ${view === 'mypage' ? 'active' : ''}`} onClick={() => jump('mypage')}>마이페이지</button>}
-            {isAdmin && <button className={`nav-link ${view === 'admin' ? 'active' : ''}`} onClick={() => jump('admin')}>관리자</button>}
+            {isAdmin && <button className="nav-link" onClick={() => { window.location.href = '/admin/dashboard'; }}>관리자</button>}
           </nav>
 
           <div className="header-actions">
@@ -417,7 +503,11 @@ function App() {
             <img src={heroImage} alt="테라피 메인 이미지" />
             <div className="home-hero-copy">
               <h1>편안한 회복, 가벼운 시작</h1>
-              <p>예약과 리뷰, 회원 관리까지 하나의 차분한 흐름으로 이어지도록 구성했습니다.</p>
+              <div className="hero-rating">
+                <strong>{Number(reviewSummary.averageRating || 0).toFixed(1)}</strong>
+                <span>고객 평점</span>
+                <small>리뷰 {reviewSummary.totalReviews}개 기준</small>
+              </div>
               <button className="button" onClick={() => jump(auth.authenticated ? 'member-booking' : 'guest-booking')}>지금 예약하기</button>
             </div>
           </div>
@@ -429,15 +519,22 @@ function App() {
           <section className="panel split">
             <div>
               <p className="eyebrow">웰니스 스테이</p>
-              <h2>예약 흐름은 단순하게, 관리 경험은 더 차분하게</h2>
-              <p>메인만 큰 비주얼을 유지하고, 다른 페이지는 입력과 확인에 집중할 수 있도록 정리했습니다.</p>
+              <h2>라본 바디 테라피</h2>
             </div>
             <div className="feature-grid">
-              <article><h3>프로그램 안내</h3><p>원하는 코스를 고르면 바로 예약으로 이어집니다.</p></article>
-              <article><h3>고객 리뷰</h3><p>총 평점과 최근 이미지, 수정과 삭제 기능까지 함께 제공합니다.</p></article>
-              <article><h3>마이페이지</h3><p>회원 정보 수정과 예약 상태 확인을 한곳에서 처리할 수 있습니다.</p></article>
+              <article>
+                <h3>{Number(reviewSummary.averageRating || 0).toFixed(1)}</h3>
+                <p>평균 평점</p>
+              </article>
+              <article>
+                <h3>{reviewSummary.totalReviews || 0}</h3>
+                <p>누적 리뷰</p>
+              </article>
+              <article>
+                <h3>{courses.length}</h3>
+                <p>운영 프로그램</p>
+              </article>
             </div>
-            {renderNotice(['home'])}
           </section>
         )}
 
@@ -694,14 +791,176 @@ function App() {
           </section>
         )}
 
-        {view === 'admin' && isAdmin && (
+        {view === 'admin-dashboard' && isAdmin && (
           <section className="panel">
+            <div className="admin-toolbar">
+              {adminPages.map(([adminView, label]) => (
+                <button
+                  key={adminView}
+                  className={`button ${view === adminView ? '' : 'secondary'}`}
+                  type="button"
+                  onClick={() => jump(adminView)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <div className="card-grid">
-              {adminLinks.map(([href, label]) => (
-                <a className="soft-card admin-link" key={href} href={href}>
+              <article className="soft-card"><h3>{courses.length}</h3><p>운영 프로그램</p></article>
+              <article className="soft-card"><h3>{staff.length}</h3><p>스태프</p></article>
+              <article className="soft-card"><h3>{adminUsers.length}</h3><p>회원 수</p></article>
+              <article className="soft-card"><h3>{adminReservations.length}</h3><p>전체 예약</p></article>
+            </div>
+          </section>
+        )}
+
+        {view === 'admin-users' && isAdmin && (
+          <section className="panel">
+            <div className="admin-toolbar">
+              {adminPages.map(([adminView, label]) => (
+                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
+              ))}
+            </div>
+            <div className="list-grid">
+              {adminUsers.map((user) => (
+                <article className="list-card" key={user.userId}>
+                  <div className="list-head">
+                    <h3>{user.name} ({user.userId})</h3>
+                    <span>{user.role}</span>
+                  </div>
+                  <p>{user.email} / {user.phoneNumber}</p>
+                  <div className="button-row">
+                    <a className="button secondary" href={`/admin/userdetails?userId=${encodeURIComponent(user.userId)}`}>수정</a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {view === 'admin-reservations' && isAdmin && (
+          <section className="panel">
+            <div className="admin-toolbar">
+              {adminPages.map(([adminView, label]) => (
+                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
+              ))}
+            </div>
+            <div className="list-grid">
+              {adminReservations.map((reservation) => (
+                <article className="list-card" key={reservation.id}>
+                  <div className="list-head">
+                    <h3>{reservation.userId || reservation.name || '비회원 예약'}</h3>
+                    <span>{reservation.status || '예약 완료'}</span>
+                  </div>
+                  <p>{formatDate(reservation.reservationDateTime)}</p>
+                  <div className="button-row">
+                    <a className="button secondary" href={`/reservations/admin/${reservation.id}/edit`}>수정</a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {view === 'admin-courses' && isAdmin && (
+          <section className="panel">
+            <div className="admin-toolbar">
+              {adminPages.map(([adminView, label]) => (
+                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
+              ))}
+            </div>
+            <div className="list-grid">
+              <article className="list-card">
+                <div className="button-row"><a className="button" href="/courses/new">새 프로그램</a></div>
+              </article>
+              {courses.map((course) => (
+                <article className="list-card" key={course.id}>
+                  <div className="list-head">
+                    <h3>{course.name}</h3>
+                    <span>{course.durationMinutes}분</span>
+                  </div>
+                  <p>회원가 {formatMoney(course.memberPrice)} / 비회원가 {formatMoney(course.nonMemberPrice)}</p>
+                  <div className="button-row">
+                    <a className="button secondary" href={`/courses/edit/${course.id}`}>수정</a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {view === 'admin-staff' && isAdmin && (
+          <section className="panel">
+            <div className="admin-toolbar">
+              {adminPages.map(([adminView, label]) => (
+                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
+              ))}
+            </div>
+            <div className="list-grid">
+              <article className="list-card">
+                <div className="button-row"><a className="button" href="/staff/new">스태프 추가</a></div>
+              </article>
+              {staff.map((member) => (
+                <article className="list-card" key={member.id}>
+                  <div className="list-head"><h3>{member.name}</h3></div>
+                  <div className="button-row">
+                    <a className="button secondary" href={`/staff/edit/${member.id}`}>수정</a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {view === 'admin-announcements' && isAdmin && (
+          <section className="panel">
+            <div className="admin-toolbar">
+              {adminPages.map(([adminView, label]) => (
+                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
+              ))}
+            </div>
+            <div className="list-grid">
+              <article className="list-card">
+                <div className="button-row"><a className="button" href="/admin/announcements/new">공지 작성</a></div>
+              </article>
+              {announcements.map((announcement) => (
+                <article className="list-card" key={announcement.id}>
+                  <div className="list-head">
+                    <h3>{announcement.title}</h3>
+                    <span>{formatDate(announcement.createdAt)}</span>
+                  </div>
+                  <div className="button-row">
+                    <a className="button secondary" href={`/admin/announcements/${announcement.id}/edit`}>수정</a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {false && view.startsWith('admin') && isAdmin && (
+          <section className="panel">
+            <div className="admin-toolbar">
+              {adminPages.map(([adminView, label]) => (
+                <button
+                  key={adminView}
+                  className={`button ${view === adminView ? '' : 'secondary'}`}
+                  type="button"
+                  onClick={() => jump(adminView)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="card-grid">
+              {adminPages.map(([adminView, label]) => (
+                <article className="soft-card admin-link" key={adminView}>
                   <h3>{label}</h3>
-                  <p>기존 관리자 화면으로 이동해 수정과 삭제를 진행할 수 있습니다.</p>
-                </a>
+                  <p>{view === adminView ? '현재 작업 중인 관리자 화면입니다.' : '클릭하면 같은 관리자 영역 안에서 화면이 전환됩니다.'}</p>
+                  <button className="button secondary" type="button" onClick={() => jump(adminView)}>
+                    열기
+                  </button>
+                </article>
               ))}
             </div>
           </section>

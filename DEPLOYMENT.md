@@ -5,8 +5,8 @@
 Create a `.env` file in the project root:
 
 ```env
-DB_USERNAME=root
-DB_PASSWORD=1234
+DB_USERNAME="name"
+DB_PASSWORD="pwd"
 DB_URL=jdbc:mysql://localhost:3306/reservation?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
 SPRING_PROFILES_ACTIVE=dev
 ```
@@ -16,10 +16,10 @@ The application now reads `.env` automatically during startup.
 ## 2. Local run
 
 ```powershell
-cd C:\Users\MSY\Desktop\reservation_web\src\main\frontend
+cd .\reservation_web\src\main\frontend
 cmd /c npm run build
 
-cd C:\Users\MSY\Desktop\reservation_web
+cd .\reservation_web
 .\gradlew bootRun
 ```
 
@@ -28,7 +28,7 @@ cd C:\Users\MSY\Desktop\reservation_web
 Create `.env` in the project root, then run:
 
 ```powershell
-cd C:\Users\MSY\Desktop\reservation_web
+cd .\reservation_web
 docker compose up -d --build
 ```
 

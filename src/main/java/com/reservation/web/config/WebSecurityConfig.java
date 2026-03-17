@@ -50,6 +50,12 @@ public class WebSecurityConfig {
                                 "/index",
                                 "/login",
                                 "/signup",
+                                "/programs",
+                                "/announcements",
+                                "/reviews",
+                                "/therapists",
+                                "/reservation/guest",
+                                "/reservation/search",
                                 "/test",
                                 "/error",
                                 "/css/**",
@@ -70,6 +76,20 @@ public class WebSecurityConfig {
                                 "/reservations/search",
                                 "/reservations/search/result"
                         ).permitAll()
+                        .requestMatchers(
+                                "/mypage",
+                                "/reservation/member",
+                                "/reservation/my"
+                        ).authenticated()
+                        .requestMatchers(
+                                "/admin",
+                                "/admin/dashboard",
+                                "/admin/users",
+                                "/admin/reservations",
+                                "/admin/courses",
+                                "/admin/staff",
+                                "/admin/announcements"
+                        ).hasRole("ADMIN")
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/auth/csrf",

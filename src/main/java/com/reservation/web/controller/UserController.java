@@ -2,10 +2,8 @@ package com.reservation.web.controller;
 
 import com.reservation.web.dto.UserDTO;
 import com.reservation.web.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,11 +16,8 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/signup")
-    public String showSignupForm(Model model) {
-        if (!model.containsAttribute("userDTO")) {
-            model.addAttribute("userDTO", new UserDTO());
-        }
-        return "signup";
+    public String showSignupForm() {
+        return "forward:/react-app/index.html";
     }
 
     @PostMapping("/signup")
@@ -39,29 +34,8 @@ public class UserController {
     }
 
     @GetMapping("/login")
-    public String showLoginForm(HttpServletRequest request, Model model) {
-        String error = request.getParameter("error");
-        String signupSuccess = request.getParameter("signupSuccess");
-        String logout = request.getParameter("logout");
-
-        if (error != null) {
-            Object errorMessage = request.getSession().getAttribute("errorMessage");
-            model.addAttribute(
-                    "errorMessage",
-                    errorMessage != null ? errorMessage.toString() : "아이디 또는 비밀번호가 올바르지 않습니다."
-            );
-            request.getSession().removeAttribute("errorMessage");
-        }
-
-        if (signupSuccess != null) {
-            model.addAttribute("signupSuccessMessage", "회원가입이 완료되었습니다. 로그인해 주세요.");
-        }
-
-        if (logout != null) {
-            model.addAttribute("logoutMessage", "성공적으로 로그아웃되었습니다.");
-        }
-
-        return "login";
+    public String showLoginForm() {
+        return "forward:/react-app/index.html";
     }
 
     @GetMapping({"/", "/index"})
