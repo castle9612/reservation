@@ -201,7 +201,7 @@ p { line-height: 1.75; color: #6a5647; }
 }
 
 .notice {
-  display: none !important;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   margin: 14px 0 0;
