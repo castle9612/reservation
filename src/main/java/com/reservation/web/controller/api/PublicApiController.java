@@ -79,7 +79,7 @@ public class PublicApiController {
         AnnouncementDTO dto = new AnnouncementDTO();
         dto.setId(entity.getId());
         dto.setTitle(entity.getTitle());
-        dto.setContent(entity.getContent());
+        dto.setContent(announcementService.sanitizeHtml(entity.getContent()));
         dto.setCreatedAt(entity.getCreatedAt());
         dto.setAttachmentPaths(entity.getAttachmentPaths());
         dto.setOriginalAttachmentNames(entity.getOriginalAttachmentNames());

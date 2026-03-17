@@ -1,45 +1,49 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <title>직원 등록</title>
+    <title th:text="${staffDTO.id != null ? '스태프 수정' : '스태프 등록'}">스태프 등록</title>
 </head>
 <body>
 <div th:replace="~{layout/layout :: layout(~{::title}, ~{::#main-content})}">
-  <main id="main-content">
-    <h2 class="mb-4" th:text="${staffDTO.id != null ? '직원 수정' : '직원 등록'}">직원 등록</h2>
+    <main id="main-content">
+        <h2 class="mb-4" th:text="${staffDTO.id != null ? '스태프 수정' : '스태프 등록'}">스태프 등록</h2>
 
-    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
 
-    <form th:action="${staffDTO.id != null} ? @{/staff/edit/{id}(id=${staffDTO.id})} : @{/staff}"
-          th:object="${staffDTO}"
-          method="post"
-          enctype="multipart/form-data">
-      <input type="hidden" th:field="*{id}">
-      <input type="hidden" th:field="*{profilePicture}">
+        <form th:action="${staffDTO.id != null} ? @{/staff/edit/{id}(id=${staffDTO.id})} : @{/staff}"
+              th:object="${staffDTO}"
+              method="post"
+              enctype="multipart/form-data">
+            <input type="hidden" th:field="*{id}">
+            <input type="hidden" th:field="*{profilePicture}">
 
-      <div class="form-group">
-        <label for="name">이름</label>
-        <input type="text" id="name" th:field="*{name}" class="form-control">
-      </div>
+            <div class="form-group">
+                <label for="name">이름</label>
+                <input type="text" id="name" th:field="*{name}" class="form-control" placeholder="스태프 이름을 입력하세요">
+            </div>
 
-      <div class="form-group mt-3" th:if="${staffDTO.profilePicture != null and !#strings.isEmpty(staffDTO.profilePicture)}">
-        <label>현재 이미지</label>
-        <div>
-          <img th:src="@{${staffDTO.profilePicture}}" alt="직원 프로필" style="max-width:240px;" class="img-fluid rounded">
-        </div>
-      </div>
+            <div class="form-group mt-3"
+                 th:if="${staffDTO.profilePicture != null and !#strings.isEmpty(staffDTO.profilePicture)}">
+                <label>현재 이미지</label>
+                <div class="mt-2">
+                    <img th:src="@{${staffDTO.profilePicture}}"
+                         alt="스태프 프로필"
+                         style="max-width:240px;"
+                         class="img-fluid rounded">
+                </div>
+            </div>
 
-      <div class="form-group mt-3">
-        <label for="profileImage">프로필 이미지</label>
-        <input type="file" id="profileImage" name="profileImage" class="form-control-file" accept="image/*">
-      </div>
+            <div class="form-group mt-3">
+                <label for="profileImage">프로필 이미지</label>
+                <input type="file" id="profileImage" name="profileImage" class="form-control-file" accept="image/*">
+            </div>
 
-      <div class="mt-4">
-        <button type="submit" class="btn btn-primary">저장</button>
-        <a th:href="@{/staff}" class="btn btn-secondary">목록</a>
-      </div>
-    </form>
-  </main>
+            <div class="mt-4 d-flex">
+                <button type="submit" class="btn btn-primary mr-2">저장</button>
+                <a th:href="@{/staff}" class="btn btn-secondary">목록</a>
+            </div>
+        </form>
+    </main>
 </div>
 </body>
 </html>

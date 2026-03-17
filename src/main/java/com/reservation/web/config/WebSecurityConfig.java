@@ -40,7 +40,6 @@ public class WebSecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .ignoringRequestMatchers(
-                                new AntPathRequestMatcher("/admin/announcements/uploadSummernoteImageFile"),
                                 new AntPathRequestMatcher("/api/auth/signup"),
                                 new AntPathRequestMatcher("/signup")
                         )
@@ -71,23 +70,30 @@ public class WebSecurityConfig {
                                 "/reservations/search",
                                 "/reservations/search/result"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET,
+                        .requestMatchers(
+                                HttpMethod.GET,
                                 "/api/auth/csrf",
                                 "/api/auth/me",
                                 "/api/public/**",
                                 "/api/courses",
                                 "/api/courses/*",
-                                "/api/reservations/search"
+                                "/api/reservations/search",
+                                "/api/reviews"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST,
+                        .requestMatchers(
+                                HttpMethod.POST,
                                 "/signup",
                                 "/api/auth/signup",
-                                "/api/reservations/guest"
+                                "/api/reservations/guest",
+                                "/api/reviews"
                         ).permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/staff/new", "/staff/edit/**", "/staff/delete/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/reservations/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/reservations/member").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/mypage").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/reviews/*", "/api/mypage").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/reviews/*").authenticated()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
@@ -134,7 +140,7 @@ public class WebSecurityConfig {
                             if (isAjaxRequest(request) || request.getRequestURI().startsWith("/api/")) {
                                 writeJson(response, HttpServletResponse.SC_FORBIDDEN, false, "접근 권한이 없습니다.");
                             } else {
-                                response.sendRedirect("/test?denied");
+                                response.sendRedirect("/");
                             }
                         })
                 )

@@ -5,9 +5,9 @@ import com.reservation.web.entity.StaffEntity;
 import com.reservation.web.repository.StaffRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,6 +20,10 @@ import java.util.stream.Collectors;
 
 @Service
 public class StaffService {
+    private static final List<String> ALLOWED_IMAGE_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
+    private static final List<String> ALLOWED_IMAGE_CONTENT_TYPES = List.of(
+            "image/jpeg", "image/png", "image/gif", "image/webp"
+    );
 
     private final StaffRepository staffRepository;
     private final Path uploadRoot;
@@ -39,8 +43,8 @@ public class StaffService {
         );
     }
 
-    @Transactional(readOnly = true) // 데이터 변경이 없으므로 readOnly
-    public List<StaffEntity> findAllStaffEntities() { // 메서드명 명확화
+    @Transactional(readOnly = true)
+    public List<StaffEntity> findAllStaffEntities() {
         return staffRepository.findAll();
     }
 
@@ -51,15 +55,14 @@ public class StaffService {
                 .collect(Collectors.toList());
     }
 
-
     @Transactional(readOnly = true)
-    public StaffEntity findEntityById(Long id) { // Entity 반환
+    public StaffEntity findEntityById(Long id) {
         return staffRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 ID의 직원이 존재하지 않습니다: " + id));
     }
 
     @Transactional(readOnly = true)
-    public StaffDTO findById(Long id) { // DTO 반환
+    public StaffDTO findById(Long id) {
         StaffEntity staffEntity = staffRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("해당 ID의 직원이 존재하지 않습니다: " + id));
         return convertEntityToDTO(staffEntity);
@@ -96,6 +99,8 @@ public class StaffService {
 
     private String storeProfileImage(MultipartFile profileImage) throws IOException {
         String originalFileName = StringUtils.cleanPath(profileImage.getOriginalFilename() == null ? "" : profileImage.getOriginalFilename());
+        validateImageFile(profileImage, originalFileName);
+
         String extension = "";
         int dotIndex = originalFileName.lastIndexOf('.');
         if (dotIndex >= 0 && dotIndex < originalFileName.length() - 1) {
@@ -112,5 +117,22 @@ public class StaffService {
             Files.copy(inputStream, target, StandardCopyOption.REPLACE_EXISTING);
         }
         return storedFileName;
+    }
+
+    private void validateImageFile(MultipartFile image, String originalFileName) throws IOException {
+        if (originalFileName.contains("..")) {
+            throw new IOException("잘못된 파일 이름입니다.");
+        }
+
+        String lowerName = originalFileName.toLowerCase();
+        boolean allowedExtension = ALLOWED_IMAGE_EXTENSIONS.stream().anyMatch(lowerName::endsWith);
+        if (!allowedExtension) {
+            throw new IOException("이미지 파일만 업로드할 수 있습니다.");
+        }
+
+        String contentType = image.getContentType();
+        if (contentType == null || !ALLOWED_IMAGE_CONTENT_TYPES.contains(contentType.toLowerCase())) {
+            throw new IOException("허용되지 않는 이미지 형식입니다.");
+        }
     }
 }

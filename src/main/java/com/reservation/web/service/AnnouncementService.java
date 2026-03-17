@@ -2,6 +2,8 @@ package com.reservation.web.service;
 
 import com.reservation.web.entity.AnnouncementEntity;
 import com.reservation.web.repository.AnnouncementRepository;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +27,12 @@ import java.util.UUID;
 @Service
 public class AnnouncementService {
     private static final Logger logger = LoggerFactory.getLogger(AnnouncementService.class);
+    private static final Safelist ANNOUNCEMENT_HTML_POLICY = Safelist.relaxed()
+            .addTags("section", "article")
+            .addAttributes(":all", "class")
+            .addAttributes("a", "target", "rel")
+            .addProtocols("a", "href", "http", "https", "mailto")
+            .addProtocols("img", "src", "http", "https");
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "jpg", "jpeg", "png", "gif", "webp", "pdf", "txt", "doc", "docx", "hwp", "hwpx"
     );
@@ -51,6 +59,8 @@ public class AnnouncementService {
 
     @Transactional
     public AnnouncementEntity save(AnnouncementEntity announcement, MultipartFile[] attachmentFiles) throws IOException {
+        announcement.setContent(sanitizeHtml(announcement.getContent()));
+
         List<String> attachmentPaths = new ArrayList<>();
         List<String> originalFileNames = new ArrayList<>();
 
@@ -81,7 +91,7 @@ public class AnnouncementService {
                 .orElseThrow(() -> new IllegalArgumentException("공지사항을 찾을 수 없습니다. id=" + id));
 
         existingAnnouncement.setTitle(updatedAnnouncementData.getTitle());
-        existingAnnouncement.setContent(updatedAnnouncementData.getContent());
+        existingAnnouncement.setContent(sanitizeHtml(updatedAnnouncementData.getContent()));
 
         List<String> currentAttachmentPaths = existingAnnouncement.getAttachmentPaths() != null
                 ? new ArrayList<>(existingAnnouncement.getAttachmentPaths())
@@ -236,7 +246,14 @@ public class AnnouncementService {
 
         String extension = originalFileName.substring(lastDotIndex + 1).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new IOException("지원하지 않는 파일 형식입니다.");
+            throw new IOException("허용되지 않는 파일 형식입니다.");
         }
+    }
+
+    public String sanitizeHtml(String content) {
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+        return Jsoup.clean(content, ANNOUNCEMENT_HTML_POLICY);
     }
 }

@@ -53,6 +53,7 @@ public class AnnouncementController {
             redirectAttributes.addFlashAttribute("errorMessage", "요청하신 공지사항을 찾을 수 없습니다. (ID: " + id + ")");
             return "redirect:/announcement/list";
         }
+        announcement.setContent(announcementService.sanitizeHtml(announcement.getContent()));
         model.addAttribute("announcement", announcement);
         return "announcement/detail";
     }

@@ -10,28 +10,34 @@
             background: #f5f2ee;
             color: #2b2b2b;
         }
+
         .wrap {
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
+
         .card {
             background: #fcfbfa;
             border-radius: 24px;
             padding: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         }
+
         .item {
             padding: 16px 0;
             border-bottom: 1px solid #eadfd4;
         }
+
         .item:last-child {
             border-bottom: none;
         }
+
         a {
             color: #6a513e;
             text-decoration: none;
         }
+
         .top {
             margin-bottom: 18px;
         }
@@ -43,15 +49,15 @@
         <div class="top">
             <h1>스태프 목록</h1>
             <a th:href="@{/}">홈으로</a>
-            <span th:if="${#authorization.expression('hasRole(''ADMIN'')')}"> | <a th:href="@{/staff/new}">스태프 등록</a></span>
+            <span th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
+                | <a th:href="@{/staff/new}">스태프 등록</a>
+            </span>
         </div>
 
         <div th:if="${successMessage}" th:text="${successMessage}"></div>
         <div th:if="${errorMessage}" th:text="${errorMessage}"></div>
 
-        <div th:if="${#lists.isEmpty(staffList)}">
-            등록된 스태프가 없습니다.
-        </div>
+        <div th:if="${#lists.isEmpty(staffList)}">등록된 스태프가 없습니다.</div>
 
         <div th:each="staff : ${staffList}" class="item">
             <strong th:text="${staff.name}">스태프 이름</strong>

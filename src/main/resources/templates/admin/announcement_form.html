@@ -98,8 +98,11 @@
 <script th:src="@{/webjars/bootstrap/4.6.2/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/webjars/summernote/0.8.20/dist/summernote-bs4.min.js}"></script>
 
-<script>
+<script th:inline="javascript">
   $(function () {
+      const csrfHeader = '[[${_csrf.headerName}]]';
+      const csrfToken = '[[${_csrf.token}]]';
+
       $('#content').summernote({
           height: 400,
           placeholder: '공지 내용을 입력해줘',
@@ -131,6 +134,9 @@
               url: '/admin/announcements/uploadSummernoteImageFile',
               type: 'POST',
               data: data,
+              beforeSend: function (xhr) {
+                  xhr.setRequestHeader(csrfHeader, csrfToken);
+              },
               contentType: false,
               processData: false,
               success: function (resp) {

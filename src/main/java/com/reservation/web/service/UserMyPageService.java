@@ -19,7 +19,9 @@ public class UserMyPageService {
     private final ReservationRepository reservationRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserMyPageService(UserRepository userRepository, ReservationRepository reservationRepository, PasswordEncoder passwordEncoder) {
+    public UserMyPageService(UserRepository userRepository,
+                             ReservationRepository reservationRepository,
+                             PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.reservationRepository = reservationRepository;
         this.passwordEncoder = passwordEncoder;
@@ -28,7 +30,6 @@ public class UserMyPageService {
     public UserMyPageDTO getUserDetails(String userId) {
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-        List<ReservationEntity> reservations = reservationRepository.findByUserId(user.getUserId());
 
         UserMyPageDTO dto = new UserMyPageDTO();
         dto.setUserId(user.getUserId());
@@ -37,7 +38,6 @@ public class UserMyPageService {
         dto.setPhoneNumber(user.getPhoneNumber());
         dto.setPackageCount(user.getPackageCount());
         dto.setMemo(user.getMemo());
-        dto.setReservations(reservations);
         return dto;
     }
 
@@ -55,6 +55,7 @@ public class UserMyPageService {
                 user.setPassword(passwordEncoder.encode(userMyPageDTO.getPassword()));
             }
         }
+
         user.setPackageCount(userMyPageDTO.getPackageCount());
         userRepository.save(user);
     }
@@ -69,12 +70,10 @@ public class UserMyPageService {
     public void updateReservation(String reservationId, String newDateTime) {
         ReservationEntity reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("예약을 찾을 수 없습니다: " + reservationId));
-        // TODO: newDateTime 문자열을 LocalDateTime으로 파싱 시 예외 처리 고려
         try {
             reservation.setReservationDateTime(LocalDateTime.parse(newDateTime));
             reservationRepository.save(reservation);
         } catch (java.time.format.DateTimeParseException e) {
-            // 로깅 및 적절한 예외 처리
             throw new IllegalArgumentException("잘못된 날짜/시간 형식입니다: " + newDateTime, e);
         }
     }
@@ -88,18 +87,6 @@ public class UserMyPageService {
     }
 
     public UserMyPageDTO getUserDetailsById(String userId) {
-        UserEntity user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
-        List<ReservationEntity> reservations = reservationRepository.findByUserId(user.getUserId());
-        // getUserDetails 메소드와 동일한 로직으로 DTO 생성
-        UserMyPageDTO dto = new UserMyPageDTO();
-        dto.setUserId(user.getUserId());
-        dto.setUserName(user.getName());
-        dto.setUserEmail(user.getEmail());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setPackageCount(user.getPackageCount());
-        dto.setMemo(user.getMemo());
-        dto.setReservations(reservations);
-        return dto;
+        return getUserDetails(userId);
     }
 }

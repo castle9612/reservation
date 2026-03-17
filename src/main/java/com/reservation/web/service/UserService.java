@@ -69,6 +69,12 @@ public class UserService implements UserDetailsService {
         return authentication.getName();
     }
 
+    @Transactional(readOnly = true)
+    public UserEntity getUserEntity(String userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+    }
+
     private void validateSignupRequest(UserDTO userDTO) {
         if (userDTO == null) {
             throw new IllegalArgumentException("회원가입 정보가 없습니다.");

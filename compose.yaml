@@ -3,8 +3,10 @@ services:
     image: mysql:8.0
     container_name: reservation-mysql
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: reservation
       TZ: Asia/Seoul
     ports:
@@ -24,11 +26,13 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql
+    env_file:
+      - .env
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:mysql://mysql:3306/reservation?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-      DB_USERNAME: root
-      DB_PASSWORD: 1234
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/reservation?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+      DB_USERNAME: ${DB_USERNAME:-root}
+      DB_PASSWORD: ${DB_PASSWORD}
     ports:
       - "8080:8080"
 
