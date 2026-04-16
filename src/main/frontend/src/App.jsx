@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 const heroImages = [
-  'https://images.pexels.com/photos/5240677/pexels-photo-5240677.jpeg?auto=compress&cs=tinysrgb&w=1400',
-  'https://images.pexels.com/photos/6663369/pexels-photo-6663369.jpeg?auto=compress&cs=tinysrgb&w=1400',
-  'https://images.pexels.com/photos/3757942/pexels-photo-3757942.jpeg?auto=compress&cs=tinysrgb&w=1400',
+  `${import.meta.env.BASE_URL}hero-1.jpg`,
+  `${import.meta.env.BASE_URL}hero-2.jpg`,
+  `${import.meta.env.BASE_URL}hero-3.jpg`,
 ];
 
 const adminPages = [
@@ -68,6 +68,12 @@ const guestInit = { courseId: '', reservationDateTime: '', name: '', phoneNumber
 const memberInit = { courseId: '', reservationDateTime: '' };
 const myPageInit = { userId: '', userName: '', userEmail: '', phoneNumber: '', password: '', packageCount: 0, memo: '' };
 const reviewInit = { reviewerName: '', rating: 5, content: '', images: [] };
+const storeName = import.meta.env.VITE_STORE_NAME || '라본 바디 테라피';
+const storeAddress = import.meta.env.VITE_STORE_ADDRESS || '예약 전 위치와 이동 동선을 먼저 확인해 두시면 보다 편안하게 방문하실 수 있습니다.';
+const storePhone = import.meta.env.VITE_STORE_PHONE || '';
+const kakaoMapTimestamp = import.meta.env.VITE_KAKAO_MAP_TIMESTAMP || '1776303319351';
+const kakaoMapKey = import.meta.env.VITE_KAKAO_MAP_KEY || '2acjrw73oay7';
+const kakaoMapContainerId = `daumRoughmapContainer${kakaoMapTimestamp}`;
 
 function App() {
   const brandLogoUrl = `${import.meta.env.BASE_URL}brand-logo.png`;
@@ -94,6 +100,7 @@ function App() {
   const [memberForm, setMemberForm] = useState(memberInit);
   const [reviewForm, setReviewForm] = useState(reviewInit);
   const [editingReviewId, setEditingReviewId] = useState(null);
+  const mapContainerRef = useRef(null);
 
   const isAdmin = auth.role === 'ROLE_ADMIN';
   const heroImage = useMemo(() => heroImages[new Date().getDate() % heroImages.length], []);
@@ -107,6 +114,82 @@ function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  useEffect(() => {
+    if (view !== 'home' || !kakaoMapTimestamp || !kakaoMapKey || !mapContainerRef.current) {
+      return undefined;
+    }
+
+    let isDisposed = false;
+
+    const renderMap = () => {
+      const container = document.getElementById(kakaoMapContainerId);
+      if (isDisposed || !window.daum?.roughmap?.Lander || !container) return;
+
+      const mapWidth = String(Math.max(container.offsetWidth || 640, 320));
+      const mapHeight = window.innerWidth <= 720 ? '320' : '420';
+
+      container.innerHTML = '';
+
+      new window.daum.roughmap.Lander({
+        timestamp: kakaoMapTimestamp,
+        key: kakaoMapKey,
+        mapWidth,
+        mapHeight,
+      }).render();
+    };
+
+    const ensureRoughmapLoader = () => {
+      if (window.daum?.roughmap?.Lander) {
+        renderMap();
+        return undefined;
+      }
+
+      const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+      const cdnVersion = '16137cec';
+
+      window.daum = window.daum || {};
+      window.daum.roughmap = window.daum.roughmap || {
+        cdn: cdnVersion,
+        URL_KEY_DATA_LOAD_PRE: `${protocol}//t1.daumcdn.net/roughmap/`,
+        url_protocal: protocol,
+      };
+
+      const existingScript = document.querySelector('script[data-kakao-roughmap-lander="true"]');
+      if (existingScript) {
+        if (existingScript.dataset.loaded === 'true') {
+          renderMap();
+          return undefined;
+        }
+
+        existingScript.addEventListener('load', renderMap);
+        return () => existingScript.removeEventListener('load', renderMap);
+      }
+
+      const script = document.createElement('script');
+      script.src = `${protocol}//t1.daumcdn.net/kakaomapweb/place/jscss/roughmap/${cdnVersion}/roughmapLander.js`;
+      script.async = true;
+      script.charset = 'UTF-8';
+      script.dataset.kakaoRoughmapLander = 'true';
+      script.addEventListener('load', () => {
+        script.dataset.loaded = 'true';
+        renderMap();
+      });
+      document.body.appendChild(script);
+
+      return undefined;
+    };
+
+    const cleanupLoader = ensureRoughmapLoader();
+    const handleResize = () => renderMap();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      isDisposed = true;
+      window.removeEventListener('resize', handleResize);
+      if (typeof cleanupLoader === 'function') cleanupLoader();
+    };
+  }, [kakaoMapContainerId, kakaoMapKey, kakaoMapTimestamp, view]);
 
   async function bootstrap() {
     setLoading(true);
@@ -491,10 +574,29 @@ function App() {
           </nav>
 
           <div className="header-actions">
-            {!auth.authenticated && <button className="button secondary" onClick={() => jump('login')}>로그인</button>}
-            {!auth.authenticated && <button className="button" onClick={() => jump('guest-booking')}>예약하기</button>}
-            {auth.authenticated && <button className="button secondary" onClick={() => jump('mypage')}>{myPage.userName || auth.userId} 님</button>}
-            {auth.authenticated && <button className="button" onClick={logout}>로그아웃</button>}
+            {!auth.authenticated && (
+              <>
+                <button className="utility-button" onClick={() => jump('guest-search')}>비회원 예약조회</button>
+                <div className="auth-pair" role="group" aria-label="로그인 및 회원가입">
+                  <button type="button" onClick={() => jump('login')}>로그인</button>
+                  <span className="auth-divider" aria-hidden="true" />
+                  <button type="button" onClick={() => jump('signup')}>회원가입</button>
+                </div>
+                <button className="button header-cta" onClick={() => jump('guest-booking')}>예약하기</button>
+              </>
+            )}
+
+            {auth.authenticated && (
+              <>
+                <button className="utility-button" onClick={() => jump('my-reservations')}>내 예약</button>
+                <div className="auth-pair" role="group" aria-label="회원 메뉴">
+                  <button type="button" onClick={() => jump('mypage')}>{myPage.userName || auth.userId} 님</button>
+                  <span className="auth-divider" aria-hidden="true" />
+                  <button type="button" onClick={() => jump('mypage')}>마이페이지</button>
+                </div>
+                <button className="button header-cta" onClick={logout}>로그아웃</button>
+              </>
+            )}
           </div>
         </div>
 
@@ -534,6 +636,38 @@ function App() {
                 <h3>{courses.length}</h3>
                 <p>운영 프로그램</p>
               </article>
+            </div>
+          </section>
+        )}
+
+        {view === 'home' && (
+          <section className="panel location-panel">
+            <div className="location-copy">
+              <p className="eyebrow">Location</p>
+              <h2>오시는 길</h2>
+              <p>차분한 테라피 시간으로 이어질 수 있도록 매장 위치를 한눈에 확인하실 수 있게 준비했습니다.</p>
+
+              <div className="location-detail">
+                <strong>{storeName}</strong>
+                <span>{storeAddress}</span>
+                {storePhone ? <span>예약 및 문의 {storePhone}</span> : null}
+              </div>
+            </div>
+
+            <div className="location-map-shell">
+              {kakaoMapKey && kakaoMapTimestamp ? (
+                <div
+                  id={kakaoMapContainerId}
+                  ref={mapContainerRef}
+                  className="kakao-map-canvas root_daum_roughmap root_daum_roughmap_landing"
+                />
+              ) : (
+                <div className="map-placeholder">
+                  <strong>{storeName}</strong>
+                  <p>{storeAddress}</p>
+                  <span>카카오 지도 퍼가기 키를 연결하면 실제 매장 지도가 이 영역에 표시됩니다.</span>
+                </div>
+              )}
             </div>
           </section>
         )}
