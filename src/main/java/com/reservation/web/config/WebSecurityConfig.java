@@ -165,7 +165,7 @@ public class WebSecurityConfig {
                             }
                         })
                 )
-                .httpBasic(Customizer.withDefaults());
+                .httpBasic(httpBasic -> httpBasic.disable());
 
         return http.build();
     }

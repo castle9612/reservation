@@ -73,11 +73,19 @@ public class ApiReservationController {
     }
 
     @GetMapping("/search")
-    public ApiResponse<List<ReservationDTO>> searchGuestReservations(@RequestParam String phoneNumber) {
+    public ApiResponse<List<ReservationDTO>> searchGuestReservations(@RequestParam String name,
+                                                                     @RequestParam String phoneNumber) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("예약자명을 입력해 주세요.");
+        }
         String normalizedPhone = phoneNumber.replaceAll("[^0-9]", "");
-        List<ReservationDTO> reservations = reservationService.findByPhoneNumber(normalizedPhone)
+        if (normalizedPhone.isBlank()) {
+            throw new IllegalArgumentException("전화번호를 입력해 주세요.");
+        }
+
+        List<ReservationDTO> reservations = reservationService.findGuestReservations(name, normalizedPhone)
                 .stream()
-                .map(reservationService::convertToDto)
+                .map(reservationService::convertToGuestLookupDto)
                 .toList();
 
         return ApiResponse.ok(reservations);

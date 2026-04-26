@@ -8,7 +8,7 @@
 <div id="main-content">
   <h1>예약 조회 결과</h1>
   <div th:if="${#lists.isEmpty(reservations)}" class="text-center">
-    <p>해당 연락처로 조회된 예약 내역이 없습니다.</p>
+    <p>입력하신 예약자명과 연락처로 조회된 예약 내역이 없습니다.</p>
     <a th:href="@{/reservations/search}" class="btn mt-2">다시 검색하기</a>
   </div>
   <table class="styled-table" th:unless="${#lists.isEmpty(reservations)}">
@@ -30,7 +30,7 @@
     </tbody>
   </table>
   <div class="text-center mt-2" th:unless="${#lists.isEmpty(reservations)}">
-    <a th:href="@{/reservations/search}" class="btn btn-secondary">다른 연락처로 검색</a>
+    <a th:href="@{/reservations/search}" class="btn btn-secondary">다시 검색</a>
   </div>
 </div>
 </body>

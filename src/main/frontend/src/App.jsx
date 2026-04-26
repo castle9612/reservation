@@ -71,6 +71,7 @@ const signupCheckInit = {
   phoneNumber: { status: 'idle', message: '' },
 };
 const guestInit = { courseId: '', reservationDateTime: '', name: '', phoneNumber: '' };
+const guestSearchInit = { name: '', phoneNumber: '' };
 const memberInit = { courseId: '', reservationDateTime: '' };
 const myPageInit = { userId: '', userName: '', userEmail: '', phoneNumber: '', password: '', packageCount: 0, memo: '' };
 const reviewInit = { reviewerName: '', rating: 5, content: '', images: [] };
@@ -99,7 +100,7 @@ function App() {
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminReservations, setAdminReservations] = useState([]);
   const [myPage, setMyPage] = useState(myPageInit);
-  const [searchPhone, setSearchPhone] = useState('');
+  const [guestSearchForm, setGuestSearchForm] = useState(guestSearchInit);
   const [loginForm, setLoginForm] = useState(loginInit);
   const [signupForm, setSignupForm] = useState(signupInit);
   const [signupChecks, setSignupChecks] = useState(signupCheckInit);
@@ -646,6 +647,7 @@ function App() {
           phoneNumber: guestForm.phoneNumber.replaceAll(/[^0-9]/g, ''),
         }),
       });
+      setGuestSearchForm({ name: guestForm.name, phoneNumber: formatPhoneNumber(guestForm.phoneNumber) });
       setGuestForm({ ...guestInit, reservationDateTime: nextSlot() });
       setNotice({ type: 'success', text: '비회원 예약이 완료되었습니다.' });
       jump('guest-search');
@@ -675,7 +677,19 @@ function App() {
   async function searchGuestReservation(event) {
     event.preventDefault();
     try {
-      const data = (await api(`/api/reservations/search?phoneNumber=${encodeURIComponent(searchPhone.replaceAll(/[^0-9]/g, ''))}`)) || [];
+      const normalizedPhoneNumber = normalizePhoneNumber(guestSearchForm.phoneNumber);
+      const name = guestSearchForm.name.trim();
+      if (!name) {
+        setNotice({ type: 'error', text: '예약자명을 입력해 주세요.' });
+        return;
+      }
+      if (!isValidKoreanPhoneNumber(normalizedPhoneNumber)) {
+        setNotice({ type: 'error', text: '올바른 전화번호를 입력해 주세요.' });
+        return;
+      }
+
+      const params = new URLSearchParams({ name, phoneNumber: normalizedPhoneNumber });
+      const data = (await api(`/api/reservations/search?${params.toString()}`)) || [];
       setGuestReservations(data);
       setNotice({ type: 'info', text: data.length ? '예약 내역을 확인했습니다.' : '조회된 예약이 없습니다.' });
     } catch (error) {
@@ -1076,13 +1090,24 @@ function App() {
         {view === 'guest-search' && (
           <section className="panel">
             <form className="inline-form" onSubmit={searchGuestReservation}>
-              <input value={searchPhone} onChange={(event) => setSearchPhone(event.target.value)} placeholder="예약 시 사용한 전화번호" required />
+              <input
+                value={guestSearchForm.name}
+                onChange={(event) => setGuestSearchForm((prev) => ({ ...prev, name: event.target.value }))}
+                placeholder="예약자명"
+                required
+              />
+              <input
+                value={guestSearchForm.phoneNumber}
+                onChange={(event) => setGuestSearchForm((prev) => ({ ...prev, phoneNumber: formatPhoneNumber(event.target.value) }))}
+                placeholder="예약 시 사용한 전화번호"
+                required
+              />
               <button className="button" type="submit">예약 확인</button>
             </form>
             {renderNotice(['guest-search'])}
             <div className="list-grid">
-              {guestReservations.map((item) => (
-                <article className="list-card" key={item.id}>
+              {guestReservations.map((item, index) => (
+                <article className="list-card" key={item.id || `${item.reservationDateTime}-${index}`}>
                   <div className="list-head">
                     <h3>{item.name || '비회원 예약'}</h3>
                     <span>{formatDate(item.reservationDateTime)}</span>

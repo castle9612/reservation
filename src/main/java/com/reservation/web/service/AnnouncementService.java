@@ -156,17 +156,10 @@ public class AnnouncementService {
         }
 
         String originalFileName = cleanOriginalFilename(file);
-        validateExtension(originalFileName);
+        UploadFileValidator.validateAttachment(file, originalFileName, ALLOWED_EXTENSIONS);
+        String extension = UploadFileValidator.extensionOf(originalFileName);
 
-        String extension = "";
-        int lastDotIndex = originalFileName.lastIndexOf('.');
-        if (lastDotIndex > 0 && lastDotIndex < originalFileName.length() - 1) {
-            extension = originalFileName.substring(lastDotIndex + 1).toLowerCase();
-        }
-
-        String storedFileName = extension.isEmpty()
-                ? UUID.randomUUID().toString()
-                : UUID.randomUUID() + "." + extension;
+        String storedFileName = UUID.randomUUID() + "." + extension;
 
         Path targetLocation = rootFileLocation.resolve(storedFileName).normalize();
         if (!targetLocation.startsWith(rootFileLocation)) {
@@ -236,18 +229,6 @@ public class AnnouncementService {
             throw new IllegalArgumentException("잘못된 파일 이름입니다.");
         }
         return originalFileName;
-    }
-
-    private void validateExtension(String originalFileName) throws IOException {
-        int lastDotIndex = originalFileName.lastIndexOf('.');
-        if (lastDotIndex < 0 || lastDotIndex == originalFileName.length() - 1) {
-            return;
-        }
-
-        String extension = originalFileName.substring(lastDotIndex + 1).toLowerCase();
-        if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new IOException("허용되지 않는 파일 형식입니다.");
-        }
     }
 
     public String sanitizeHtml(String content) {

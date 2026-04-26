@@ -118,8 +118,13 @@ public class ReservationService {
         return reservationRepository.findByStatus(status);
     }
 
-    public List<ReservationEntity> findByPhoneNumber(String phoneNumber) {
-        return reservationRepository.findByPhoneNumber(phoneNumber);
+    public List<ReservationEntity> findGuestReservations(String name, String phoneNumber) {
+        String normalizedName = trimToNull(name);
+        String normalizedPhoneNumber = trimToNull(phoneNumber);
+        if (normalizedName == null || normalizedPhoneNumber == null) {
+            throw new IllegalArgumentException("비회원 예약 조회에는 예약자명과 연락처가 모두 필요합니다.");
+        }
+        return reservationRepository.findByPhoneNumberAndName(normalizedPhoneNumber, normalizedName);
     }
 
     public int countConfirmedReservations(String userId) {
@@ -196,6 +201,15 @@ public class ReservationService {
         return dto;
     }
 
+    public ReservationDTO convertToGuestLookupDto(ReservationEntity entity) {
+        ReservationDTO dto = convertToDto(entity);
+        dto.setId(null);
+        dto.setUserId(null);
+        dto.setName(maskName(entity.getName()));
+        dto.setPhoneNumber(maskPhoneNumber(entity.getPhoneNumber()));
+        return dto;
+    }
+
     private CourseEntity getCourse(Long courseId) {
         return courseRepository.findById(courseId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 코스 ID입니다: " + courseId));
@@ -249,5 +263,21 @@ public class ReservationService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String maskName(String name) {
+        String trimmed = trimToNull(name);
+        if (trimmed == null || trimmed.length() <= 1) {
+            return trimmed == null ? "" : "*";
+        }
+        return trimmed.charAt(0) + "*".repeat(Math.max(1, trimmed.length() - 1));
+    }
+
+    private String maskPhoneNumber(String phoneNumber) {
+        String digits = phoneNumber == null ? "" : phoneNumber.replaceAll("[^0-9]", "");
+        if (digits.length() < 7) {
+            return "";
+        }
+        return digits.substring(0, 3) + "****" + digits.substring(digits.length() - 4);
     }
 }

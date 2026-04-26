@@ -39,8 +39,14 @@ public class ReservationController {
     }
 
     @PostMapping("/search")
-    public String searchNonMemberReservationsByPhoneNumber(@RequestParam("phoneNumber") String phoneNumber,
+    public String searchNonMemberReservationsByPhoneNumber(@RequestParam("name") String name,
+                                                           @RequestParam("phoneNumber") String phoneNumber,
                                                            Model model) {
+        if (name == null || name.trim().isEmpty()) {
+            model.addAttribute("searchError", "예약자명을 입력해주세요.");
+            return "reservation/nonMemberSearchInputForm";
+        }
+
         String normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
 
         if (normalizedPhoneNumber == null || normalizedPhoneNumber.isBlank()) {
@@ -50,12 +56,13 @@ public class ReservationController {
 
         validateKoreanPhoneNumber(normalizedPhoneNumber);
 
-        List<ReservationDTO> reservationDTOs = reservationService.findByPhoneNumber(normalizedPhoneNumber)
+        List<ReservationDTO> reservationDTOs = reservationService.findGuestReservations(name, normalizedPhoneNumber)
                 .stream()
-                .map(this::convertToDto)
+                .map(reservationService::convertToGuestLookupDto)
                 .collect(Collectors.toList());
 
         model.addAttribute("reservations", reservationDTOs);
+        model.addAttribute("searchedName", name.trim());
         model.addAttribute("searchedPhoneNumber", normalizedPhoneNumber);
         return "reservation/search_non_member";
     }

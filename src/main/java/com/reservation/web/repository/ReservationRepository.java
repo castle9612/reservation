@@ -14,7 +14,7 @@ public interface ReservationRepository extends JpaRepository<ReservationEntity, 
     List<ReservationEntity> findByStatus(String status);
     List<ReservationEntity> findByReservationDateTimeBetween(LocalDateTime start, LocalDateTime end);
     List<ReservationEntity> findByReservationDateTimeBetweenAndStatusIn(LocalDateTime start, LocalDateTime end, Collection<String> statuses);
-    List<ReservationEntity> findByPhoneNumber(String phoneNumber);
+    List<ReservationEntity> findByPhoneNumberAndName(String phoneNumber, String name);
     int countByUserIdAndStatus(String userId, String status);
     int countByUserIdAndStatusIn(String userId, Collection<String> statuses);
 }

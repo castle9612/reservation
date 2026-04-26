@@ -24,11 +24,6 @@ import java.util.UUID;
 
 @Service
 public class ReviewService {
-    private static final List<String> ALLOWED_IMAGE_EXTENSIONS = List.of(".jpg", ".jpeg", ".png", ".gif", ".webp");
-    private static final List<String> ALLOWED_IMAGE_CONTENT_TYPES = List.of(
-            "image/jpeg", "image/png", "image/gif", "image/webp"
-    );
-
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final Path uploadRoot;
@@ -215,15 +210,6 @@ public class ReviewService {
             throw new IOException("잘못된 파일 이름입니다.");
         }
 
-        String lowerName = originalFileName.toLowerCase();
-        boolean allowedExtension = ALLOWED_IMAGE_EXTENSIONS.stream().anyMatch(lowerName::endsWith);
-        if (!allowedExtension) {
-            throw new IOException("이미지 파일만 업로드할 수 있습니다.");
-        }
-
-        String contentType = image.getContentType();
-        if (contentType == null || !ALLOWED_IMAGE_CONTENT_TYPES.contains(contentType.toLowerCase())) {
-            throw new IOException("허용되지 않는 이미지 형식입니다.");
-        }
+        UploadFileValidator.validateImage(image, originalFileName);
     }
 }
