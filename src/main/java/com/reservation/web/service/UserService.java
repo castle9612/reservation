@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -75,6 +76,30 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
     }
 
+    @Transactional(readOnly = true)
+    public SignupAvailability checkSignupAvailability(String userId, String userEmail, String phoneNumber) {
+        Boolean userIdAvailable = null;
+        Boolean userEmailAvailable = null;
+        Boolean phoneNumberAvailable = null;
+
+        if (!isBlank(userId)) {
+            userIdAvailable = !userRepository.existsById(userId.trim());
+        }
+
+        if (!isBlank(userEmail)) {
+            userEmailAvailable = !userRepository.existsByEmail(normalizeEmail(userEmail));
+        }
+
+        if (!isBlank(phoneNumber)) {
+            String normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
+            if (!normalizedPhoneNumber.isEmpty() && isValidKoreanPhoneNumber(normalizedPhoneNumber)) {
+                phoneNumberAvailable = !userRepository.existsByPhoneNumber(normalizedPhoneNumber);
+            }
+        }
+
+        return new SignupAvailability(userIdAvailable, userEmailAvailable, phoneNumberAvailable);
+    }
+
     private void validateSignupRequest(UserDTO userDTO) {
         if (userDTO == null) {
             throw new IllegalArgumentException("회원가입 정보가 없습니다.");
@@ -99,6 +124,10 @@ public class UserService implements UserDetailsService {
         if (isBlank(userDTO.getPhoneNumber())) {
             throw new IllegalArgumentException("전화번호는 필수입니다.");
         }
+
+        userDTO.setUserId(userDTO.getUserId().trim());
+        userDTO.setUserName(userDTO.getUserName().trim());
+        userDTO.setUserEmail(normalizeEmail(userDTO.getUserEmail()));
 
         String normalizedPhoneNumber = normalizePhoneNumber(userDTO.getPhoneNumber());
         validateKoreanPhoneNumber(normalizedPhoneNumber);
@@ -134,10 +163,14 @@ public class UserService implements UserDetailsService {
     }
 
     private void validateKoreanPhoneNumber(String phoneNumber) {
-        String regex = "^(01[016789]\\d{7,8}|02\\d{7,8}|0[3-9]\\d{8,9})$";
-        if (!phoneNumber.matches(regex)) {
+        if (!isValidKoreanPhoneNumber(phoneNumber)) {
             throw new IllegalArgumentException("올바른 대한민국 전화번호 형식이 아닙니다.");
         }
+    }
+
+    private boolean isValidKoreanPhoneNumber(String phoneNumber) {
+        String regex = "^(01[016789]\\d{7,8}|02\\d{7,8}|0[3-9]\\d{8,9})$";
+        return phoneNumber != null && phoneNumber.matches(regex);
     }
 
     private String normalizePhoneNumber(String phoneNumber) {
@@ -147,7 +180,21 @@ public class UserService implements UserDetailsService {
         return phoneNumber.replaceAll("[^0-9]", "");
     }
 
+    private String normalizeEmail(String userEmail) {
+        if (userEmail == null) {
+            return null;
+        }
+        return userEmail.trim().toLowerCase(Locale.ROOT);
+    }
+
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    public record SignupAvailability(
+            Boolean userIdAvailable,
+            Boolean userEmailAvailable,
+            Boolean phoneNumberAvailable
+    ) {
     }
 }

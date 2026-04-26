@@ -30,7 +30,7 @@ services:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/reservation?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+      DB_URL: ${APP_DB_URL:-jdbc:mysql://mysql:3306/reservation?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
       DB_USERNAME: ${DB_USERNAME:-root}
       DB_PASSWORD: ${DB_PASSWORD}
     ports:

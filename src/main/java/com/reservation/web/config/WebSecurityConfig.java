@@ -94,6 +94,7 @@ public class WebSecurityConfig {
                                 HttpMethod.GET,
                                 "/api/auth/csrf",
                                 "/api/auth/me",
+                                "/api/auth/signup/availability",
                                 "/api/public/**",
                                 "/api/courses",
                                 "/api/courses/*",

@@ -56,6 +56,7 @@ const loginInit = { userId: '', password: '' };
 const signupInit = {
   userId: '',
   password: '',
+  passwordConfirm: '',
   userName: '',
   userEmail: '',
   phoneNumber: '',
@@ -63,6 +64,11 @@ const signupInit = {
   gender: '여성',
   maritalStatus: false,
   privacyConsent: false,
+};
+const signupCheckInit = {
+  userId: { status: 'idle', message: '' },
+  userEmail: { status: 'idle', message: '' },
+  phoneNumber: { status: 'idle', message: '' },
 };
 const guestInit = { courseId: '', reservationDateTime: '', name: '', phoneNumber: '' };
 const memberInit = { courseId: '', reservationDateTime: '' };
@@ -96,6 +102,9 @@ function App() {
   const [searchPhone, setSearchPhone] = useState('');
   const [loginForm, setLoginForm] = useState(loginInit);
   const [signupForm, setSignupForm] = useState(signupInit);
+  const [signupChecks, setSignupChecks] = useState(signupCheckInit);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupPasswordConfirm, setShowSignupPasswordConfirm] = useState(false);
   const [guestForm, setGuestForm] = useState(guestInit);
   const [memberForm, setMemberForm] = useState(memberInit);
   const [reviewForm, setReviewForm] = useState(reviewInit);
@@ -104,23 +113,32 @@ function App() {
 
   const isAdmin = auth.role === 'ROLE_ADMIN';
   const heroImage = useMemo(() => heroImages[new Date().getDate() % heroImages.length], []);
+  const passwordConfirmState = !signupForm.passwordConfirm
+    ? null
+    : signupForm.password === signupForm.passwordConfirm
+      ? { status: 'success', message: '비밀번호가 일치합니다.' }
+      : { status: 'error', message: '비밀번호가 일치하지 않습니다.' };
 
   useEffect(() => {
     bootstrap();
   }, []);
 
   useEffect(() => {
-    const handlePopState = () => setView(resolveViewFromPath(window.location.pathname));
+    const handlePopState = () => {
+      setNotice(null);
+      setView(resolveViewFromPath(window.location.pathname));
+    };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   useEffect(() => {
-    if (view !== 'home' || !kakaoMapTimestamp || !kakaoMapKey || !mapContainerRef.current) {
+    if (loading || view !== 'home' || !kakaoMapTimestamp || !kakaoMapKey || !mapContainerRef.current) {
       return undefined;
     }
 
     let isDisposed = false;
+    let frameId = null;
 
     const renderMap = () => {
       const container = document.getElementById(kakaoMapContainerId);
@@ -139,9 +157,20 @@ function App() {
       }).render();
     };
 
+    const scheduleRender = () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+
+      frameId = window.requestAnimationFrame(() => {
+        renderMap();
+        frameId = null;
+      });
+    };
+
     const ensureRoughmapLoader = () => {
       if (window.daum?.roughmap?.Lander) {
-        renderMap();
+        scheduleRender();
         return undefined;
       }
 
@@ -158,12 +187,12 @@ function App() {
       const existingScript = document.querySelector('script[data-kakao-roughmap-lander="true"]');
       if (existingScript) {
         if (existingScript.dataset.loaded === 'true') {
-          renderMap();
+          scheduleRender();
           return undefined;
         }
 
-        existingScript.addEventListener('load', renderMap);
-        return () => existingScript.removeEventListener('load', renderMap);
+        existingScript.addEventListener('load', scheduleRender);
+        return () => existingScript.removeEventListener('load', scheduleRender);
       }
 
       const script = document.createElement('script');
@@ -173,7 +202,7 @@ function App() {
       script.dataset.kakaoRoughmapLander = 'true';
       script.addEventListener('load', () => {
         script.dataset.loaded = 'true';
-        renderMap();
+        scheduleRender();
       });
       document.body.appendChild(script);
 
@@ -186,10 +215,13 @@ function App() {
 
     return () => {
       isDisposed = true;
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
       window.removeEventListener('resize', handleResize);
       if (typeof cleanupLoader === 'function') cleanupLoader();
     };
-  }, [kakaoMapContainerId, kakaoMapKey, kakaoMapTimestamp, view]);
+  }, [kakaoMapContainerId, kakaoMapKey, kakaoMapTimestamp, loading, view]);
 
   async function bootstrap() {
     setLoading(true);
@@ -299,6 +331,160 @@ function App() {
     }));
   }
 
+  function normalizePhoneNumber(value) {
+    return (value || '').replaceAll(/[^0-9]/g, '');
+  }
+
+  function formatPhoneNumber(value) {
+    const digits = normalizePhoneNumber(value).slice(0, 11);
+    if (!digits) return '';
+
+    if (digits.startsWith('02')) {
+      if (digits.length <= 2) return digits;
+      if (digits.length <= 5) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+      if (digits.length <= 9) return `${digits.slice(0, 2)}-${digits.slice(2, digits.length - 4)}-${digits.slice(-4)}`;
+      return `${digits.slice(0, 2)}-${digits.slice(2, 6)}-${digits.slice(6)}`;
+    }
+
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    if (digits.length <= 10) return `${digits.slice(0, 3)}-${digits.slice(3, digits.length - 4)}-${digits.slice(-4)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  }
+
+  function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || '').trim());
+  }
+
+  function isValidKoreanPhoneNumber(value) {
+    return /^(01[016789]\d{7,8}|02\d{7,8}|0[3-9]\d{8,9})$/.test(value || '');
+  }
+
+  function setSignupCheck(field, status, message) {
+    setSignupChecks((prev) => ({
+      ...prev,
+      [field]: { status, message },
+    }));
+  }
+
+  function handleSignupChange({ target }) {
+    const { name, type, checked } = target;
+    let nextValue = type === 'checkbox' ? checked : target.value;
+
+    if (name === 'phoneNumber') {
+      nextValue = formatPhoneNumber(nextValue);
+    }
+
+    setSignupForm((prev) => ({
+      ...prev,
+      [name]: nextValue,
+    }));
+
+    if (name in signupCheckInit) {
+      setSignupCheck(name, 'idle', '');
+    }
+  }
+
+  async function requestSignupAvailability(values) {
+    const params = new URLSearchParams();
+    if (values.userId?.trim()) params.set('userId', values.userId.trim());
+    if (values.userEmail?.trim()) params.set('userEmail', values.userEmail.trim());
+    if (values.phoneNumber?.trim()) params.set('phoneNumber', values.phoneNumber.trim());
+    if (!params.toString()) return null;
+    return api(`/api/auth/signup/availability?${params.toString()}`);
+  }
+
+  function renderSignupHint(field, overrideState = null) {
+    const state = overrideState || signupChecks[field];
+    if (!state || state.status === 'idle' || !state.message) return null;
+    return <small className={`field-hint ${state.status}`}>{state.message}</small>;
+  }
+
+  useEffect(() => {
+    const userId = signupForm.userId.trim();
+    if (!userId) {
+      setSignupCheck('userId', 'idle', '');
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setSignupCheck('userId', 'loading', '아이디 확인 중...');
+      try {
+        const data = await requestSignupAvailability({ userId });
+        if (cancelled) return;
+        setSignupCheck('userId', data?.userIdAvailable ? 'success' : 'error', data?.userIdAvailable ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.');
+      } catch (error) {
+        if (!cancelled) setSignupCheck('userId', 'error', '아이디 확인 중 오류가 발생했습니다.');
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [signupForm.userId]);
+
+  useEffect(() => {
+    const userEmail = signupForm.userEmail.trim();
+    if (!userEmail) {
+      setSignupCheck('userEmail', 'idle', '');
+      return undefined;
+    }
+
+    if (!isValidEmail(userEmail)) {
+      setSignupCheck('userEmail', 'error', '올바른 이메일 형식을 입력해 주세요.');
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setSignupCheck('userEmail', 'loading', '이메일 확인 중...');
+      try {
+        const data = await requestSignupAvailability({ userEmail });
+        if (cancelled) return;
+        setSignupCheck('userEmail', data?.userEmailAvailable ? 'success' : 'error', data?.userEmailAvailable ? '사용 가능한 이메일입니다.' : '이미 사용 중인 이메일입니다.');
+      } catch (error) {
+        if (!cancelled) setSignupCheck('userEmail', 'error', '이메일 확인 중 오류가 발생했습니다.');
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [signupForm.userEmail]);
+
+  useEffect(() => {
+    const normalizedPhoneNumber = normalizePhoneNumber(signupForm.phoneNumber);
+    if (!normalizedPhoneNumber) {
+      setSignupCheck('phoneNumber', 'idle', '');
+      return undefined;
+    }
+
+    if (!isValidKoreanPhoneNumber(normalizedPhoneNumber)) {
+      setSignupCheck('phoneNumber', 'error', '올바른 전화번호를 입력해 주세요.');
+      return undefined;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      setSignupCheck('phoneNumber', 'loading', '전화번호 확인 중...');
+      try {
+        const data = await requestSignupAvailability({ phoneNumber: normalizedPhoneNumber });
+        if (cancelled) return;
+        setSignupCheck('phoneNumber', data?.phoneNumberAvailable ? 'success' : 'error', data?.phoneNumberAvailable ? '사용 가능한 전화번호입니다.' : '이미 사용 중인 전화번호입니다.');
+      } catch (error) {
+        if (!cancelled) setSignupCheck('phoneNumber', 'error', '전화번호 확인 중 오류가 발생했습니다.');
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [signupForm.phoneNumber]);
+
   function jump(next, options = {}) {
     const nextPath = viewPathMap[next] || '/';
     if (options.replace) {
@@ -306,6 +492,7 @@ function App() {
     } else if (window.location.pathname !== nextPath) {
       window.history.pushState({}, '', nextPath);
     }
+    setNotice(null);
     setView(next);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -352,15 +539,20 @@ function App() {
       });
       await fetchCsrf();
       const me = await api('/api/auth/me');
+      if (!me?.authenticated) {
+        throw new Error('아이디 또는 비밀번호가 올바르지 않습니다.');
+      }
       setAuth(me || { authenticated: false, userId: null, role: null });
       setLoginForm(loginInit);
-      const followUpTasks = [loadMyReservations(), loadMyPage(), refreshReviews()];
+      const followUpTasks = [refreshReviews()];
+      followUpTasks.push(loadMyReservations());
+      followUpTasks.push(loadMyPage());
       if (me?.role === 'ROLE_ADMIN') {
         followUpTasks.push(loadAdminUsers(), loadAdminReservations());
       }
-      await Promise.all(followUpTasks);
       setNotice({ type: 'success', text: '로그인되었습니다.' });
       jump('home');
+      await Promise.allSettled(followUpTasks);
     } catch (error) {
       setNotice({ type: 'error', text: error.message || '로그인에 실패했습니다.' });
     }
@@ -368,13 +560,72 @@ function App() {
 
   async function submitSignup(event) {
     event.preventDefault();
+    const normalizedPhoneNumber = normalizePhoneNumber(signupForm.phoneNumber);
+
+    if (signupForm.password !== signupForm.passwordConfirm) {
+      setNotice({ type: 'error', text: '비밀번호 확인이 일치하지 않습니다.' });
+      return;
+    }
+
+    if (!isValidEmail(signupForm.userEmail)) {
+      setSignupCheck('userEmail', 'error', '올바른 이메일 형식을 입력해 주세요.');
+      setNotice({ type: 'error', text: '이메일 형식을 확인해 주세요.' });
+      return;
+    }
+
+    if (!isValidKoreanPhoneNumber(normalizedPhoneNumber)) {
+      setSignupCheck('phoneNumber', 'error', '올바른 전화번호를 입력해 주세요.');
+      setNotice({ type: 'error', text: '전화번호 형식을 확인해 주세요.' });
+      return;
+    }
+
     try {
+      const availability = await requestSignupAvailability({
+        userId: signupForm.userId,
+        userEmail: signupForm.userEmail,
+        phoneNumber: normalizedPhoneNumber,
+      });
+
+      setSignupChecks({
+        userId: {
+          status: availability?.userIdAvailable ? 'success' : 'error',
+          message: availability?.userIdAvailable ? '사용 가능한 아이디입니다.' : '이미 사용 중인 아이디입니다.',
+        },
+        userEmail: {
+          status: availability?.userEmailAvailable ? 'success' : 'error',
+          message: availability?.userEmailAvailable ? '사용 가능한 이메일입니다.' : '이미 사용 중인 이메일입니다.',
+        },
+        phoneNumber: {
+          status: availability?.phoneNumberAvailable ? 'success' : 'error',
+          message: availability?.phoneNumberAvailable ? '사용 가능한 전화번호입니다.' : '이미 사용 중인 전화번호입니다.',
+        },
+      });
+
+      if (availability?.userIdAvailable === false) {
+        setNotice({ type: 'error', text: '이미 사용 중인 아이디입니다.' });
+        return;
+      }
+
+      if (availability?.userEmailAvailable === false) {
+        setNotice({ type: 'error', text: '이미 사용 중인 이메일입니다.' });
+        return;
+      }
+
+      if (availability?.phoneNumberAvailable === false) {
+        setNotice({ type: 'error', text: '이미 사용 중인 전화번호입니다.' });
+        return;
+      }
+
+      const { passwordConfirm, ...signupPayload } = signupForm;
       await api('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...signupForm, phoneNumber: signupForm.phoneNumber.replaceAll(/[^0-9]/g, '') }),
+        body: JSON.stringify({ ...signupPayload, phoneNumber: normalizedPhoneNumber }),
       });
       setSignupForm(signupInit);
+      setSignupChecks(signupCheckInit);
+      setShowSignupPassword(false);
+      setShowSignupPasswordConfirm(false);
       setNotice({ type: 'success', text: '회원가입이 완료되었습니다.' });
       jump('login');
     } catch (error) {
@@ -903,22 +1154,87 @@ function App() {
             <form className="form-card" onSubmit={submitSignup}>
               <h2>멤버십 가입</h2>
               <div className="two-column">
-                <label><span>아이디</span><input name="userId" value={signupForm.userId} onChange={update(setSignupForm)} required /></label>
-                <label><span>비밀번호</span><input type="password" name="password" value={signupForm.password} onChange={update(setSignupForm)} required /></label>
+                <label>
+                  <span>아이디</span>
+                  <input name="userId" value={signupForm.userId} onChange={handleSignupChange} autoComplete="username" required />
+                  {renderSignupHint('userId')}
+                </label>
+                <label>
+                  <span>비밀번호</span>
+                  <div className="password-field">
+                    <input
+                      type={showSignupPassword ? 'text' : 'password'}
+                      name="password"
+                      value={signupForm.password}
+                      onChange={handleSignupChange}
+                      autoComplete="new-password"
+                      required
+                    />
+                    <button
+                      className="password-toggle"
+                      type="button"
+                      aria-label={showSignupPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                      onClick={() => setShowSignupPassword((prev) => !prev)}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
+                        <circle cx="12" cy="12" r="3.2" />
+                        {showSignupPassword ? null : <path d="M4 4l16 16" />}
+                      </svg>
+                    </button>
+                  </div>
+                </label>
               </div>
               <div className="two-column">
-                <label><span>이름</span><input name="userName" value={signupForm.userName} onChange={update(setSignupForm)} required /></label>
-                <label><span>이메일</span><input name="userEmail" value={signupForm.userEmail} onChange={update(setSignupForm)} required /></label>
+                <label>
+                  <span>비밀번호 확인</span>
+                  <div className="password-field">
+                    <input
+                      type={showSignupPasswordConfirm ? 'text' : 'password'}
+                      name="passwordConfirm"
+                      value={signupForm.passwordConfirm}
+                      onChange={handleSignupChange}
+                      autoComplete="new-password"
+                      required
+                    />
+                    <button
+                      className="password-toggle"
+                      type="button"
+                      aria-label={showSignupPasswordConfirm ? '비밀번호 숨기기' : '비밀번호 보기'}
+                      onClick={() => setShowSignupPasswordConfirm((prev) => !prev)}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
+                        <circle cx="12" cy="12" r="3.2" />
+                        {showSignupPasswordConfirm ? null : <path d="M4 4l16 16" />}
+                      </svg>
+                    </button>
+                  </div>
+                  {passwordConfirmState ? renderSignupHint('passwordConfirm', passwordConfirmState) : null}
+                </label>
+                <label><span>이름</span><input name="userName" value={signupForm.userName} onChange={handleSignupChange} required /></label>
               </div>
               <div className="two-column">
-                <label><span>전화번호</span><input name="phoneNumber" value={signupForm.phoneNumber} onChange={update(setSignupForm)} required /></label>
-                <label><span>생년월일</span><input type="date" name="birthdate" value={signupForm.birthdate} onChange={update(setSignupForm)} required /></label>
+                <label>
+                  <span>이메일</span>
+                  <input name="userEmail" type="email" value={signupForm.userEmail} onChange={handleSignupChange} autoComplete="email" required />
+                  {renderSignupHint('userEmail')}
+                </label>
+                <label><span>생년월일</span><input type="date" name="birthdate" value={signupForm.birthdate} onChange={handleSignupChange} required /></label>
               </div>
               <div className="two-column">
-                <label><span>성별</span><select name="gender" value={signupForm.gender} onChange={update(setSignupForm)}><option value="여성">여성</option><option value="남성">남성</option></select></label>
+                <label>
+                  <span>전화번호</span>
+                  <input name="phoneNumber" value={signupForm.phoneNumber} onChange={handleSignupChange} autoComplete="tel" required />
+                  {renderSignupHint('phoneNumber')}
+                </label>
+                <label><span>성별</span><select name="gender" value={signupForm.gender} onChange={handleSignupChange}><option value="여성">여성</option><option value="남성">남성</option></select></label>
+              </div>
+              <div className="two-column">
                 <label><span>결혼 여부</span><select name="maritalStatus" value={signupForm.maritalStatus ? 'true' : 'false'} onChange={(event) => setSignupForm((prev) => ({ ...prev, maritalStatus: event.target.value === 'true' }))}><option value="false">미혼</option><option value="true">기혼</option></select></label>
+                <div />
               </div>
-              <label className="consent-row"><input type="checkbox" name="privacyConsent" checked={signupForm.privacyConsent} onChange={update(setSignupForm)} required /><span>개인정보 수집 및 이용에 동의합니다.</span></label>
+              <label className="consent-row"><input type="checkbox" name="privacyConsent" checked={signupForm.privacyConsent} onChange={handleSignupChange} required /><span>개인정보 수집 및 이용에 동의합니다.</span></label>
               <button className="button" type="submit">회원가입</button>
               {renderNotice(['signup'])}
             </form>

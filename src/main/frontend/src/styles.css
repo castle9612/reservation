@@ -459,6 +459,59 @@ textarea {
   color: #34261e;
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 56px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 12px;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  background: rgba(247, 238, 228, 0.94);
+  color: #7b563a;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.field-hint {
+  display: block;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.field-hint.loading,
+.field-hint.idle {
+  color: #8a6b54;
+}
+
+.field-hint.success {
+  color: #2f7d4f;
+}
+
+.field-hint.error {
+  color: #b24d40;
+}
+
 .readonly-box {
   padding: 14px 16px;
   border-radius: 16px;

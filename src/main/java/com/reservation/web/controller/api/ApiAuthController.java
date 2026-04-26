@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -48,5 +49,18 @@ public class ApiAuthController {
     public ApiResponse<Void> signup(@RequestBody UserDTO userDTO) {
         userService.signup(userDTO);
         return ApiResponse.ok(null, "회원가입이 완료되었습니다.");
+    }
+    @GetMapping("/signup/availability")
+    public ApiResponse<SignupAvailabilityResponse> checkSignupAvailability(
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String userEmail,
+            @RequestParam(required = false) String phoneNumber
+    ) {
+        UserService.SignupAvailability availability = userService.checkSignupAvailability(userId, userEmail, phoneNumber);
+        return ApiResponse.ok(new SignupAvailabilityResponse(
+                availability.userIdAvailable(),
+                availability.userEmailAvailable(),
+                availability.phoneNumberAvailable()
+        ));
     }
 }
