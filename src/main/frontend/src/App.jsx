@@ -78,7 +78,7 @@ const defaultSiteContent = {
   storePhone: import.meta.env.VITE_STORE_PHONE || '',
   locationDescription: '차분한 테라피 시간으로 이어질 수 있도록 매장 위치를 한눈에 확인하실 수 있게 준비했습니다.',
 };
-const courseFormInit = { name: '', staffId: '', durationMinutes: 60 };
+const courseFormInit = { name: '', staffId: '', durationMinutes: 60, memberPrice: '' };
 const staffFormInit = { name: '', profilePicture: '', description: '', profileImage: null };
 const announcementFormInit = { title: '', content: '', newAttachmentFiles: [], deletedAttachmentPaths: [] };
 const reservationFormInit = { id: '', courseId: '', staffId: '', reservationDateTime: '', name: '', phoneNumber: '', status: 'PENDING' };
@@ -186,6 +186,8 @@ function App() {
   const [siteHeroImageFile, setSiteHeroImageFile] = useState(null);
   const [adminCourseForm, setAdminCourseForm] = useState(courseFormInit);
   const [editingCourseId, setEditingCourseId] = useState(null);
+  const [draggingCourseId, setDraggingCourseId] = useState(null);
+  const [dragOverCourseId, setDragOverCourseId] = useState(null);
   const [adminStaffForm, setAdminStaffForm] = useState(staffFormInit);
   const [editingStaffId, setEditingStaffId] = useState(null);
   const [adminAnnouncementForm, setAdminAnnouncementForm] = useState(announcementFormInit);
@@ -702,6 +704,10 @@ function App() {
     return course?.staffId ? String(course.staffId) : '';
   }
 
+  function coursePrice(course) {
+    return Number(course?.memberPrice || course?.nonMemberPrice || 0);
+  }
+
   const availableCoupons = (myPage.coupons || []).filter((coupon) => String(coupon.status || '').toUpperCase() === 'AVAILABLE');
 
   async function submitLogin(event) {
@@ -967,18 +973,20 @@ function App() {
       name: course.name || '',
       staffId: course.staffId ? String(course.staffId) : '',
       durationMinutes: course.durationMinutes || 60,
+      memberPrice: coursePrice(course),
     });
   }
 
   async function submitAdminCourse(event) {
     event.preventDefault();
     try {
+      const price = Number(adminCourseForm.memberPrice || 0);
       const payload = {
         ...adminCourseForm,
         staffId: adminCourseForm.staffId ? Number(adminCourseForm.staffId) : null,
         durationMinutes: Number(adminCourseForm.durationMinutes || 0),
-        memberPrice: 0,
-        nonMemberPrice: 0,
+        memberPrice: price,
+        nonMemberPrice: price,
       };
       await api(editingCourseId ? `/api/admin/courses/${editingCourseId}` : '/api/admin/courses', {
         method: editingCourseId ? 'PUT' : 'POST',
@@ -1004,6 +1012,48 @@ function App() {
     } catch (error) {
       setNotice({ type: 'error', text: error.message || '코스 삭제에 실패했습니다.' });
     }
+  }
+
+  async function reorderAdminCourses(nextCourses) {
+    const previousCourses = courses;
+    setCourses(nextCourses);
+    try {
+      await api('/api/admin/courses/reorder', {
+        method: 'PUT',
+        useCsrf: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseIds: nextCourses.map((course) => course.id) }),
+      });
+      await loadCourses();
+      setNotice({ type: 'success', text: '프로그램 순서가 변경되었습니다.' });
+    } catch (error) {
+      setCourses(previousCourses);
+      setNotice({ type: 'error', text: error.message || '프로그램 순서 변경에 실패했습니다.' });
+    }
+  }
+
+  async function dropAdminCourse(event, targetCourseId) {
+    event.preventDefault();
+    const sourceCourseId = Number(event.dataTransfer.getData('text/plain') || draggingCourseId);
+    setDraggingCourseId(null);
+    setDragOverCourseId(null);
+
+    if (!sourceCourseId || sourceCourseId === Number(targetCourseId)) return;
+
+    const fromIndex = courses.findIndex((course) => Number(course.id) === sourceCourseId);
+    const toIndex = courses.findIndex((course) => Number(course.id) === Number(targetCourseId));
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const nextCourses = [...courses];
+    const [movedCourse] = nextCourses.splice(fromIndex, 1);
+    nextCourses.splice(toIndex, 0, movedCourse);
+    await reorderAdminCourses(nextCourses);
+  }
+
+  function startCourseDrag(event, courseId) {
+    setDraggingCourseId(courseId);
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(courseId));
   }
 
   async function moveAdminCourse(courseId, direction) {
@@ -1541,6 +1591,7 @@ function App() {
                 <article className="soft-card" key={course.id}>
                   <h3>{course.name}</h3>
                   <p>{course.durationMinutes}분 코스</p>
+                  <p className="course-price">{formatMoney(coursePrice(course))}</p>
                   <p>담당 {course.staff?.name || '방문 시 배정'}</p>
                   <button
                     className="button secondary"
@@ -1762,26 +1813,56 @@ function App() {
         )}
 
         {view === 'mypage' && (
-          <section className="panel form-panel">
-            <form className="form-card" onSubmit={submitMyPage}>
-              <div className="readonly-box">보유 마일리지 {formatMoney(myPage.mileageBalance || 0)}</div>
-              <div className="coupon-wallet">
-                <h3>내 쿠폰</h3>
+          <section className="panel mypage-panel">
+            <div className="mypage-hero">
+              <div>
+                <p className="eyebrow">My Page</p>
+                <h2>{myPage.userName || auth.userId} 님</h2>
+                <p>예약 혜택과 내 정보를 한곳에서 확인하고 관리합니다.</p>
+              </div>
+              <div className="mypage-metrics">
+                <article>
+                  <span>보유 마일리지</span>
+                  <strong>{formatMoney(myPage.mileageBalance || 0)}</strong>
+                </article>
+                <article>
+                  <span>사용 가능 쿠폰</span>
+                  <strong>{availableCoupons.length}장</strong>
+                </article>
+              </div>
+            </div>
+            {renderNotice(['mypage'])}
+
+            <div className="mypage-grid">
+              <div className="coupon-wallet mypage-card">
+                <div className="section-title-row">
+                  <h3>내 쿠폰</h3>
+                  <span>{(myPage.coupons || []).length}장 보유</span>
+                </div>
                 {(myPage.coupons || []).length ? (myPage.coupons || []).map((coupon) => (
                   <div className="coupon-row" key={coupon.id}>
-                    <strong>{coupon.name}</strong>
+                    <div>
+                      <strong>{coupon.name}</strong>
+                      {coupon.expiresAt ? <small>{formatDate(coupon.expiresAt)} 만료</small> : <small>만료일 없음</small>}
+                    </div>
                     <span>{formatMoney(coupon.discountAmount)} / {couponStatusLabel(coupon.status)}</span>
                   </div>
                 )) : <p>보유 쿠폰이 없습니다.</p>}
               </div>
-              <label><span>아이디</span><input value={myPage.userId || ''} readOnly /></label>
-              <label><span>이름</span><input name="userName" value={myPage.userName || ''} onChange={update(setMyPage)} required /></label>
-              <label><span>이메일</span><input name="userEmail" value={myPage.userEmail || ''} onChange={update(setMyPage)} required /></label>
-              <label><span>전화번호</span><input name="phoneNumber" value={myPage.phoneNumber || ''} onChange={update(setMyPage)} required /></label>
-              <label><span>새 비밀번호</span><input type="password" name="password" value={myPage.password || ''} onChange={update(setMyPage)} /></label>
-              <button className="button" type="submit">내 정보 저장</button>
-              {renderNotice(['mypage'])}
-            </form>
+
+              <form className="form-card mypage-card" onSubmit={submitMyPage}>
+                <div className="section-title-row">
+                  <h3>내 정보</h3>
+                  <span>수정 가능</span>
+                </div>
+                <label><span>아이디</span><input value={myPage.userId || ''} readOnly /></label>
+                <label><span>이름</span><input name="userName" value={myPage.userName || ''} onChange={update(setMyPage)} required /></label>
+                <label><span>이메일</span><input name="userEmail" value={myPage.userEmail || ''} onChange={update(setMyPage)} required /></label>
+                <label><span>전화번호</span><input name="phoneNumber" value={myPage.phoneNumber || ''} onChange={update(setMyPage)} required /></label>
+                <label><span>새 비밀번호</span><input type="password" name="password" value={myPage.password || ''} onChange={update(setMyPage)} /></label>
+                <button className="button" type="submit">내 정보 저장</button>
+              </form>
+            </div>
           </section>
         )}
 
@@ -2084,7 +2165,7 @@ function App() {
             <div className="admin-section-head">
               <p className="eyebrow">Programs</p>
               <h2>프로그램 관리</h2>
-              <p>코스명, 담당 스태프, 시간을 등록하고 프로그램 순서를 조정합니다.</p>
+              <p>코스명, 담당 스태프, 시간, 가격을 등록하고 카드를 드래그해 프로그램 순서를 조정합니다.</p>
               {renderNotice(['admin-courses'])}
             </div>
             <div className="admin-layout">
@@ -2093,23 +2174,43 @@ function App() {
                 <label><span>코스명</span><input name="name" value={adminCourseForm.name} onChange={update(setAdminCourseForm)} required /></label>
                 <label><span>담당 스태프</span><select name="staffId" value={adminCourseForm.staffId} onChange={update(setAdminCourseForm)}><option value="">미지정</option>{staff.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
                 <label><span>소요 시간(분)</span><input type="number" min="1" name="durationMinutes" value={adminCourseForm.durationMinutes} onChange={update(setAdminCourseForm)} required /></label>
+                <label><span>가격</span><input type="number" min="0" step="100" name="memberPrice" value={adminCourseForm.memberPrice} onChange={update(setAdminCourseForm)} required /></label>
                 <div className="button-row">
                   <button className="button" type="submit">{editingCourseId ? '코스 저장' : '코스 등록'}</button>
                   {editingCourseId && <button className="button secondary" type="button" onClick={resetAdminCourseForm}>취소</button>}
                 </div>
               </form>
 
-              <div className="list-grid">
+              <div className="list-grid course-sort-list">
                 {courses.map((course, index) => (
-                  <article className="list-card" key={course.id}>
+                  <article
+                    className={`list-card sortable-course-card${draggingCourseId === course.id ? ' dragging' : ''}${dragOverCourseId === course.id ? ' drag-over' : ''}`}
+                    key={course.id}
+                    draggable
+                    onDragStart={(event) => startCourseDrag(event, course.id)}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      event.dataTransfer.dropEffect = 'move';
+                      setDragOverCourseId(course.id);
+                    }}
+                    onDragLeave={() => setDragOverCourseId((current) => (current === course.id ? null : current))}
+                    onDrop={(event) => dropAdminCourse(event, course.id)}
+                    onDragEnd={() => {
+                      setDraggingCourseId(null);
+                      setDragOverCourseId(null);
+                    }}
+                  >
                     <div className="list-head">
-                      <h3>{course.name}</h3>
+                      <div>
+                        <span className="sort-index">#{index + 1}</span>
+                        <h3>{course.name}</h3>
+                      </div>
                       <span>{course.durationMinutes}분</span>
                     </div>
+                    <p className="course-price">{formatMoney(coursePrice(course))}</p>
                     <p>담당 {course.staff?.name || '미지정'}</p>
+                    <p className="drag-hint">카드를 잡고 위아래로 드래그하면 순서가 저장됩니다.</p>
                     <div className="button-row">
-                      <button className="button secondary" type="button" onClick={() => moveAdminCourse(course.id, 'up')} disabled={index === 0}>위로</button>
-                      <button className="button secondary" type="button" onClick={() => moveAdminCourse(course.id, 'down')} disabled={index === courses.length - 1}>아래로</button>
                       <button className="button secondary" type="button" onClick={() => startEditCourse(course)}>수정</button>
                       <button className="button secondary danger" type="button" onClick={() => deleteAdminCourse(course.id)}>삭제</button>
                     </div>

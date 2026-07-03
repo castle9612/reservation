@@ -11,8 +11,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,8 +32,8 @@ public class CourseService {
         dto.setId(courseEntity.getId());
         dto.setName(courseEntity.getName());
         dto.setDurationMinutes(courseEntity.getDurationMinutes());
-        dto.setMemberPrice(courseEntity.getMemberPrice());
-        dto.setNonMemberPrice(courseEntity.getNonMemberPrice());
+        dto.setMemberPrice(courseEntity.getMemberPrice() == null ? 0 : courseEntity.getMemberPrice());
+        dto.setNonMemberPrice(courseEntity.getNonMemberPrice() == null ? 0 : courseEntity.getNonMemberPrice());
         dto.setDisplayOrder(courseEntity.getDisplayOrder() == null ? 0 : courseEntity.getDisplayOrder());
 
         if (courseEntity.getStaff() != null) {
@@ -139,6 +144,34 @@ public class CourseService {
         current.setDisplayOrder(target.getDisplayOrder());
         target.setDisplayOrder(currentOrder);
         courseRepository.saveAll(List.of(current, target));
+    }
+
+    @Transactional
+    public void reorderCourses(List<Long> courseIds) {
+        List<CourseEntity> courses = courseRepository.findAllByOrderByDisplayOrderAscIdAsc();
+        Map<Long, CourseEntity> courseMap = courses.stream()
+                .collect(Collectors.toMap(CourseEntity::getId, Function.identity()));
+        Set<Long> orderedIds = new HashSet<>();
+        int order = 1;
+
+        if (courseIds != null) {
+            for (Long courseId : courseIds) {
+                CourseEntity course = courseMap.get(courseId);
+                if (course == null || orderedIds.contains(courseId)) {
+                    continue;
+                }
+                course.setDisplayOrder(order++);
+                orderedIds.add(courseId);
+            }
+        }
+
+        for (CourseEntity course : courses) {
+            if (!orderedIds.contains(course.getId())) {
+                course.setDisplayOrder(order++);
+            }
+        }
+
+        courseRepository.saveAll(courses);
     }
 
     @Transactional

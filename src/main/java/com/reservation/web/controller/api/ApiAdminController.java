@@ -113,6 +113,20 @@ public class ApiAdminController {
         return ApiResponse.ok(null, "프로그램 순서가 변경되었습니다.");
     }
 
+    @PutMapping("/courses/reorder")
+    public ApiResponse<Void> reorderCourses(@RequestBody Map<String, Object> payload) {
+        Object value = payload.get("courseIds");
+        if (!(value instanceof List<?> rawCourseIds)) {
+            throw new IllegalArgumentException("변경할 프로그램 순서가 없습니다.");
+        }
+
+        List<Long> courseIds = rawCourseIds.stream()
+                .map(item -> Long.valueOf(String.valueOf(item)))
+                .toList();
+        courseService.reorderCourses(courseIds);
+        return ApiResponse.ok(null, "프로그램 순서가 변경되었습니다.");
+    }
+
     @DeleteMapping("/courses/{courseId}")
     public ApiResponse<Void> deleteCourse(@PathVariable Long courseId) {
         courseService.deleteCourse(courseId);

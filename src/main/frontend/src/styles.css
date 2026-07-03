@@ -593,6 +593,120 @@ p { line-height: 1.75; color: #6a5647; }
   margin-bottom: 0;
 }
 
+.course-price {
+  color: #9a5b32;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.course-sort-list {
+  gap: 12px;
+}
+
+.sortable-course-card {
+  cursor: grab;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease, transform 0.16s ease;
+}
+
+.sortable-course-card:active {
+  cursor: grabbing;
+}
+
+.sortable-course-card.dragging {
+  opacity: 0.52;
+  transform: scale(0.99);
+}
+
+.sortable-course-card.drag-over {
+  border-color: rgba(191, 110, 55, 0.5);
+  box-shadow: 0 16px 36px rgba(93, 58, 32, 0.14);
+}
+
+.sort-index {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  margin-bottom: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(247, 238, 228, 0.9);
+  color: #8a603f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.drag-hint {
+  margin-bottom: 0;
+  color: #9b7a60;
+  font-size: 13px;
+}
+
+.mypage-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.mypage-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(130, 86, 49, 0.12);
+}
+
+.mypage-hero h2 {
+  margin-bottom: 8px;
+}
+
+.mypage-hero p {
+  margin-bottom: 0;
+}
+
+.mypage-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.mypage-metrics article,
+.mypage-card {
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 252, 247, 0.86);
+  border: 1px solid rgba(130, 86, 49, 0.1);
+}
+
+.mypage-metrics span,
+.section-title-row span {
+  color: #8a6a52;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mypage-metrics strong {
+  display: block;
+  margin-top: 8px;
+  color: #34261e;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.mypage-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .coupon-wallet {
   display: grid;
   gap: 10px;
@@ -614,6 +728,15 @@ p { line-height: 1.75; color: #6a5647; }
   border-radius: 14px;
   background: rgba(255, 252, 247, 0.86);
   color: #6d4932;
+}
+
+.coupon-row div {
+  display: grid;
+  gap: 4px;
+}
+
+.coupon-row small {
+  color: #8a6a52;
 }
 
 .admin-link {
@@ -816,7 +939,9 @@ textarea {
   .sub-hero,
   .review-summary,
   .review-layout,
-  .admin-layout {
+  .admin-layout,
+  .mypage-hero,
+  .mypage-grid {
     grid-template-columns: 1fr;
   }
 
@@ -861,7 +986,8 @@ textarea {
   .staff-card,
   .inline-form,
   .button-row,
-  .list-head {
+  .list-head,
+  .mypage-metrics {
     grid-template-columns: 1fr;
   }
 
