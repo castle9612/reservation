@@ -3,6 +3,8 @@ package com.reservation.web.service;
 import com.reservation.web.entity.AnnouncementEntity;
 import com.reservation.web.repository.AnnouncementRepository;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.safety.Safelist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,7 @@ public class AnnouncementService {
             .addAttributes("a", "target", "rel")
             .addProtocols("a", "href", "http", "https", "mailto")
             .addProtocols("img", "src", "http", "https")
+            .removeProtocols("img", "src", "http", "https")
             .preserveRelativeLinks(true);
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "jpg", "jpeg", "png", "gif", "webp", "pdf", "txt", "doc", "docx", "hwp", "hwpx"
@@ -236,6 +239,32 @@ public class AnnouncementService {
         if (content == null || content.isBlank()) {
             return "";
         }
-        return Jsoup.clean(content, ANNOUNCEMENT_HTML_POLICY);
+        String sanitized = Jsoup.clean(content, ANNOUNCEMENT_HTML_POLICY);
+        Document document = Jsoup.parseBodyFragment(sanitized);
+
+        for (Element image : document.select("img[src]")) {
+            String source = image.attr("src").trim();
+            if (!isAllowedImageSource(source)) {
+                image.removeAttr("src");
+            }
+        }
+
+        return document.body().html();
+    }
+
+    private boolean isAllowedImageSource(String source) {
+        if (source == null || source.isBlank()) {
+            return false;
+        }
+        String normalized = source.replace('\\', '/');
+        if (normalized.startsWith("/uploads/")) {
+            String fileName = normalized.substring("/uploads/".length());
+            return !fileName.isBlank()
+                    && !fileName.contains("/")
+                    && !fileName.contains("..")
+                    && !fileName.contains(":");
+        }
+        String lower = normalized.toLowerCase();
+        return lower.startsWith("http://") || lower.startsWith("https://");
     }
 }

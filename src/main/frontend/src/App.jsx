@@ -109,9 +109,12 @@ function HtmlContent({ html }) {
   function replaceMissingImage(image) {
     if (!image || image.dataset.missingHandled === 'true') return;
     image.dataset.missingHandled = 'true';
+    const source = image.getAttribute('src');
     const message = document.createElement('div');
     message.className = 'missing-image';
-    message.textContent = `${image.getAttribute('alt') || '본문 이미지'} 파일이 서버에 없어 표시할 수 없습니다. 공지 수정에서 이미지를 다시 업로드해 주세요.`;
+    message.textContent = source
+      ? `${image.getAttribute('alt') || '본문 이미지'} 파일이 서버에 없어 표시할 수 없습니다. 공지 수정에서 이미지를 다시 업로드해 주세요.`
+      : `${image.getAttribute('alt') || '본문 이미지'} 이미지 주소가 저장되지 않았습니다. 공지 수정에서 이미지를 다시 삽입한 뒤 저장해 주세요.`;
     image.replaceWith(message);
   }
 
