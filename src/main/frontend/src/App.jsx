@@ -645,6 +645,20 @@ function App() {
     }).format(new Date(value));
   }
 
+  function formatDateOnly(value) {
+    if (!value) return '-';
+    const datePart = String(value).slice(0, 10);
+    const matched = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (matched) {
+      return `${Number(matched[1])}년 ${Number(matched[2])}월 ${Number(matched[3])}일`;
+    }
+    return new Intl.DateTimeFormat('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(new Date(value));
+  }
+
   function formatMoney(value) {
     return `${new Intl.NumberFormat('ko-KR').format(Number(value || 0))}원`;
   }
@@ -1710,7 +1724,7 @@ function App() {
                   <article className="list-card" key={review.id}>
                     <div className="list-head">
                       <h3>{review.reviewerName}</h3>
-                      <span>{formatDate(review.createdAt)}</span>
+                      <span>{formatDateOnly(review.createdAt)}</span>
                     </div>
                     <strong className="review-stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</strong>
                     <p>{review.content}</p>
