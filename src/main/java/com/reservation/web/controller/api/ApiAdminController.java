@@ -52,7 +52,6 @@ public class ApiAdminController {
             "PENDING",
             "CONFIRMED",
             "COMPLETED",
-            "CANCELLED",
             "CANCELLED_USER",
             "CANCELLED_ADMIN",
             "NO_SHOW"

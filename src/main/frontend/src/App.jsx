@@ -89,7 +89,6 @@ const reservationStatusOptions = [
   ['PENDING', '예약 대기'],
   ['CONFIRMED', '예약 확정'],
   ['COMPLETED', '이용 완료'],
-  ['CANCELLED', '취소'],
   ['CANCELLED_USER', '회원 취소'],
   ['CANCELLED_ADMIN', '관리자 취소'],
   ['NO_SHOW', '노쇼'],
@@ -98,7 +97,6 @@ const userStatusSummaryOptions = [
   ['PENDING', '대기'],
   ['CONFIRMED', '확정'],
   ['COMPLETED', '완료'],
-  ['CANCELLED', '취소'],
   ['CANCELLED_USER', '회원취소'],
   ['CANCELLED_ADMIN', '관리자취소'],
   ['NO_SHOW', '노쇼'],
@@ -383,6 +381,14 @@ function App() {
     }
 
     return payload?.data ?? null;
+  }
+
+  async function ensureAdminSession() {
+    const me = await api('/api/auth/me');
+    setAuth(me || { authenticated: false, userId: null, role: null });
+    if (!me?.authenticated || me.role !== 'ROLE_ADMIN') {
+      throw new Error('관리자 로그인이 필요합니다. 다시 로그인해 주세요.');
+    }
   }
 
   async function parseResponse(response) {
@@ -682,11 +688,19 @@ function App() {
 
   function statusLabel(status) {
     const normalized = String(status || 'PENDING').toUpperCase();
+    if (normalized === 'CANCELLED') return '회원 취소';
     return reservationStatusOptions.find(([value]) => value === normalized)?.[1] || normalized;
   }
 
   function mergedCancelCount(counts = {}) {
     return Number(counts.CANCELLED || 0) + Number(counts.CANCELLED_USER || 0) + Number(counts.CANCELLED_ADMIN || 0);
+  }
+
+  function reservationStatusCount(counts = {}, status) {
+    if (status === 'CANCELLED_USER') {
+      return Number(counts.CANCELLED_USER || 0) + Number(counts.CANCELLED || 0);
+    }
+    return Number(counts[status] || 0);
   }
 
   function attachmentName(announcement, index, path) {
@@ -1344,6 +1358,7 @@ function App() {
   async function submitMileageSetting(event) {
     event.preventDefault();
     try {
+      await ensureAdminSession();
       const saved = await api('/api/admin/mileage-setting', {
         method: 'PUT',
         useCsrf: true,
@@ -1360,6 +1375,7 @@ function App() {
   async function submitAdminCoupon(event) {
     event.preventDefault();
     try {
+      await ensureAdminSession();
       await api(editingCouponId ? `/api/admin/coupons/${editingCouponId}` : '/api/admin/coupons', {
         method: editingCouponId ? 'PUT' : 'POST',
         useCsrf: true,
@@ -1381,6 +1397,7 @@ function App() {
   async function deleteAdminCoupon(couponId) {
     if (!window.confirm('이 쿠폰을 삭제하시겠습니까?')) return;
     try {
+      await ensureAdminSession();
       await api(`/api/admin/coupons/${couponId}`, { method: 'DELETE', useCsrf: true });
       await loadAdminCoupons();
       if (editingCouponId === couponId) resetAdminCouponForm();
@@ -2082,7 +2099,7 @@ function App() {
                     <p>패키지 {user.packageCount || 0}회 / 마일리지 {formatMoney(user.mileageBalance || 0)}</p>
                     <div className="status-counts">
                       {userStatusSummaryOptions.map(([status, label]) => (
-                        <span key={`${user.userId}-${status}`}>{label} {Number(user.reservationStatusCounts?.[status] || 0)}</span>
+                        <span key={`${user.userId}-${status}`}>{label} {reservationStatusCount(user.reservationStatusCounts, status)}</span>
                       ))}
                     </div>
                     {user.memo ? <p>{user.memo}</p> : null}

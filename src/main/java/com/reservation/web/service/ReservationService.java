@@ -116,7 +116,7 @@ public class ReservationService {
 
         String previousStatus = existingReservation.getStatus();
         if (updatedReservationDTO.getStatus() != null && !updatedReservationDTO.getStatus().isBlank()) {
-            existingReservation.setStatus(updatedReservationDTO.getStatus().trim().toUpperCase());
+            existingReservation.setStatus(defaultStatus(updatedReservationDTO.getStatus()));
         }
 
         boolean memberReservation = existingReservation.getUserId() != null && !existingReservation.getUserId().isBlank();
@@ -349,7 +349,8 @@ public class ReservationService {
         if (status == null || status.isBlank()) {
             return STATUS_PENDING;
         }
-        return status.trim().toUpperCase();
+        String normalized = status.trim().toUpperCase();
+        return "CANCELLED".equals(normalized) ? "CANCELLED_USER" : normalized;
     }
 
     private String trimToNull(String value) {
