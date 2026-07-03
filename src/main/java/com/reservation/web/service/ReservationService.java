@@ -302,6 +302,9 @@ public class ReservationService {
         if (reservation.getCourse() != null && reservation.getCourse().getMemberPrice() != null) {
             baseAmount = (int) Math.round(reservation.getCourse().getMemberPrice());
         }
+        if (baseAmount <= 0 && reservation.getCourse() != null && reservation.getCourse().getDurationMinutes() != null) {
+            baseAmount = reservation.getCourse().getDurationMinutes() * 1000;
+        }
         baseAmount = Math.max(0, baseAmount - Math.max(0, reservation.getCouponDiscountAmount() == null ? 0 : reservation.getCouponDiscountAmount()));
         int earned = mileageService.earnMileage(reservation.getUserId(), baseAmount);
         reservation.setMileageEarned(earned);
