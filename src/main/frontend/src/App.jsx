@@ -121,6 +121,7 @@ function App() {
   const [guestReservations, setGuestReservations] = useState([]);
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminReservations, setAdminReservations] = useState([]);
+  const [adminReservationPhoneSearch, setAdminReservationPhoneSearch] = useState('');
   const [myPage, setMyPage] = useState(myPageInit);
   const [guestSearchForm, setGuestSearchForm] = useState(guestSearchInit);
   const [loginForm, setLoginForm] = useState(loginInit);
@@ -621,6 +622,10 @@ function App() {
 
   function reservationOwnerLabel(reservation) {
     return reservation.userId || reservation.name || '비회원 예약';
+  }
+
+  function reservationContactPhone(reservation) {
+    return reservation.contactPhoneNumber || reservation.phoneNumber || '';
   }
 
   async function submitLogin(event) {
@@ -1171,6 +1176,11 @@ function App() {
       setNotice({ type: 'error', text: error.message || '로그아웃에 실패했습니다.' });
     }
   }
+
+  const adminReservationSearchDigits = normalizePhoneNumber(adminReservationPhoneSearch);
+  const filteredAdminReservations = adminReservationSearchDigits
+    ? adminReservations.filter((reservation) => normalizePhoneNumber(reservationContactPhone(reservation)).includes(adminReservationSearchDigits))
+    : adminReservations;
 
   function renderAdminToolbar() {
     return (
@@ -1833,22 +1843,43 @@ function App() {
                 </div>
               </form>
 
-              <div className="list-grid">
-                {adminReservations.map((reservation) => (
-                  <article className="list-card" key={reservation.id}>
-                    <div className="list-head">
-                      <h3>{reservationOwnerLabel(reservation)}</h3>
-                      <span>{reservation.statusLabel || statusLabel(reservation.status)}</span>
-                    </div>
-                    <p>{reservation.courseName || `코스 ID ${reservation.courseId || '-'}`}</p>
-                    <p>{formatDate(reservation.reservationDateTime)}</p>
-                    {reservation.phoneNumber ? <p>{formatPhoneNumber(reservation.phoneNumber)}</p> : null}
-                    <div className="button-row">
-                      <button className="button secondary" type="button" onClick={() => startEditReservation(reservation)}>수정</button>
-                      <button className="button secondary danger" type="button" onClick={() => deleteAdminReservation(reservation.id)}>삭제</button>
-                    </div>
-                  </article>
-                ))}
+              <div>
+                <div className="reservation-search-bar">
+                  <label>
+                    <span>전화번호 검색</span>
+                    <input
+                      value={adminReservationPhoneSearch}
+                      onChange={(event) => setAdminReservationPhoneSearch(formatPhoneNumber(event.target.value))}
+                      placeholder="010-1234-5678 또는 일부 번호"
+                    />
+                  </label>
+                  <div className="search-meta">
+                    <span>{filteredAdminReservations.length} / 전체 {adminReservations.length}건</span>
+                    {adminReservationPhoneSearch ? (
+                      <button className="button secondary" type="button" onClick={() => setAdminReservationPhoneSearch('')}>초기화</button>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="list-grid">
+                  {filteredAdminReservations.length ? filteredAdminReservations.map((reservation) => (
+                    <article className="list-card" key={reservation.id}>
+                      <div className="list-head">
+                        <h3>{reservationOwnerLabel(reservation)}</h3>
+                        <span>{reservation.statusLabel || statusLabel(reservation.status)}</span>
+                      </div>
+                      <p>{reservation.courseName || `코스 ID ${reservation.courseId || '-'}`}</p>
+                      <p>{formatDate(reservation.reservationDateTime)}</p>
+                      {reservationContactPhone(reservation) ? <p>{formatPhoneNumber(reservationContactPhone(reservation))}</p> : null}
+                      <div className="button-row">
+                        <button className="button secondary" type="button" onClick={() => startEditReservation(reservation)}>수정</button>
+                        <button className="button secondary danger" type="button" onClick={() => deleteAdminReservation(reservation.id)}>삭제</button>
+                      </div>
+                    </article>
+                  )) : (
+                    <div className="empty-state">{adminReservationSearchDigits ? '검색된 예약이 없습니다.' : '등록된 예약이 없습니다.'}</div>
+                  )}
+                </div>
               </div>
             </div>
           </section>

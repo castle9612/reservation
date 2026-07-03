@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -70,9 +71,19 @@ public class ApiAdminController {
 
     @GetMapping("/reservations")
     public ApiResponse<List<Map<String, Object>>> reservations() {
-        List<Map<String, Object>> data = reservationRepository.findAllWithCourse()
+        List<ReservationEntity> reservations = reservationRepository.findAllWithCourse();
+        Map<String, String> memberPhoneNumbers = userRepository.findAllById(
+                        reservations.stream()
+                                .map(ReservationEntity::getUserId)
+                                .filter(userId -> userId != null && !userId.isBlank())
+                                .distinct()
+                                .toList()
+                )
                 .stream()
-                .map(this::toReservationMap)
+                .collect(Collectors.toMap(UserEntity::getUserId, UserEntity::getPhoneNumber));
+
+        List<Map<String, Object>> data = reservations.stream()
+                .map(reservation -> toReservationMap(reservation, memberPhoneNumbers.get(reservation.getUserId())))
                 .toList();
         return ApiResponse.ok(data);
     }
@@ -212,11 +223,27 @@ public class ApiAdminController {
     }
 
     private Map<String, Object> toReservationMap(ReservationEntity reservation) {
+        String memberPhoneNumber = "";
+        if (reservation.getUserId() != null && !reservation.getUserId().isBlank()) {
+            memberPhoneNumber = userRepository.findById(reservation.getUserId())
+                    .map(UserEntity::getPhoneNumber)
+                    .orElse("");
+        }
+        return toReservationMap(reservation, memberPhoneNumber);
+    }
+
+    private Map<String, Object> toReservationMap(ReservationEntity reservation, String memberPhoneNumber) {
+        String guestPhoneNumber = reservation.getPhoneNumber() == null ? "" : reservation.getPhoneNumber();
+        String contactPhoneNumber = guestPhoneNumber.isBlank()
+                ? (memberPhoneNumber == null ? "" : memberPhoneNumber)
+                : guestPhoneNumber;
+
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("id", reservation.getId());
         item.put("userId", reservation.getUserId() == null ? "" : reservation.getUserId());
         item.put("name", reservation.getName() == null ? "" : reservation.getName());
-        item.put("phoneNumber", reservation.getPhoneNumber() == null ? "" : reservation.getPhoneNumber());
+        item.put("phoneNumber", guestPhoneNumber);
+        item.put("contactPhoneNumber", contactPhoneNumber);
         item.put("status", reservation.getStatus() == null ? "" : reservation.getStatus());
         item.put("statusLabel", statusLabel(reservation.getStatus()));
         item.put("reservationDateTime", reservation.getReservationDateTime());
