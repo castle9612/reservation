@@ -32,7 +32,8 @@ public class AnnouncementService {
             .addAttributes(":all", "class")
             .addAttributes("a", "target", "rel")
             .addProtocols("a", "href", "http", "https", "mailto")
-            .addProtocols("img", "src", "http", "https");
+            .addProtocols("img", "src", "http", "https")
+            .preserveRelativeLinks(true);
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "jpg", "jpeg", "png", "gif", "webp", "pdf", "txt", "doc", "docx", "hwp", "hwpx"
     );

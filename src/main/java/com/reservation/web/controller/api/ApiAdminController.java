@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,6 +41,16 @@ import java.util.Map;
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
 public class ApiAdminController {
+
+    private static final List<String> RESERVATION_STATUSES = List.of(
+            "PENDING",
+            "CONFIRMED",
+            "COMPLETED",
+            "CANCELLED",
+            "CANCELLED_USER",
+            "CANCELLED_ADMIN",
+            "NO_SHOW"
+    );
 
     private final UserRepository userRepository;
     private final ReservationRepository reservationRepository;
@@ -134,6 +145,12 @@ public class ApiAdminController {
         return ApiResponse.ok(null, "공지사항이 삭제되었습니다.");
     }
 
+    @PostMapping(value = "/announcements/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Map<String, String>> uploadAnnouncementImage(@RequestPart("image") MultipartFile image) throws IOException {
+        String url = announcementService.storeSummernoteImage(image);
+        return ApiResponse.ok(Map.of("url", url), "본문 이미지가 업로드되었습니다.");
+    }
+
     @PutMapping("/reservations/{reservationId}")
     public ApiResponse<Map<String, Object>> updateReservation(@PathVariable String reservationId,
                                                               @RequestBody ReservationDTO reservationDTO) {
@@ -166,6 +183,18 @@ public class ApiAdminController {
         return ApiResponse.ok(toUserMap(userRepository.save(user)), "회원 정보가 수정되었습니다.");
     }
 
+    @DeleteMapping("/users/{userId}")
+    public ApiResponse<Void> deleteUser(@PathVariable String userId, Authentication authentication) {
+        if (authentication != null && userId.equals(authentication.getName())) {
+            throw new IllegalArgumentException("현재 로그인한 관리자 계정은 삭제할 수 없습니다.");
+        }
+        if (!userRepository.existsById(userId)) {
+            throw new IllegalArgumentException("삭제할 회원을 찾을 수 없습니다: " + userId);
+        }
+        userRepository.deleteById(userId);
+        return ApiResponse.ok(null, "회원이 삭제되었습니다.");
+    }
+
     private Map<String, Object> toUserMap(UserEntity user) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("userId", user.getUserId());
@@ -178,6 +207,7 @@ public class ApiAdminController {
         item.put("maritalStatus", user.isMaritalStatus());
         item.put("packageCount", user.getPackageCount());
         item.put("memo", user.getMemo());
+        item.put("reservationStatusCounts", reservationStatusCounts(user.getUserId()));
         return item;
     }
 
@@ -188,6 +218,7 @@ public class ApiAdminController {
         item.put("name", reservation.getName() == null ? "" : reservation.getName());
         item.put("phoneNumber", reservation.getPhoneNumber() == null ? "" : reservation.getPhoneNumber());
         item.put("status", reservation.getStatus() == null ? "" : reservation.getStatus());
+        item.put("statusLabel", statusLabel(reservation.getStatus()));
         item.put("reservationDateTime", reservation.getReservationDateTime());
         item.put("courseId", reservation.getCourse() == null ? null : reservation.getCourse().getId());
         item.put("courseName", reservation.getCourse() == null ? "" : reservation.getCourse().getName());
@@ -251,5 +282,35 @@ public class ApiAdminController {
             normalized = normalized.substring("ROLE_".length());
         }
         return "ADMIN".equals(normalized) ? "ADMIN" : "USER";
+    }
+
+    private Map<String, Long> reservationStatusCounts(String userId) {
+        Map<String, Long> counts = new LinkedHashMap<>();
+        RESERVATION_STATUSES.forEach(status -> counts.put(status, 0L));
+
+        reservationRepository.countStatusesByUserId(userId).forEach(row -> {
+            String status = row[0] == null ? "" : String.valueOf(row[0]).trim().toUpperCase();
+            Long count = row[1] instanceof Number number ? number.longValue() : 0L;
+            if (!status.isBlank()) {
+                counts.put(status, count);
+            }
+        });
+
+        return counts;
+    }
+
+    private String statusLabel(String status) {
+        if (status == null || status.isBlank()) {
+            return "예약 대기";
+        }
+        return switch (status.trim().toUpperCase()) {
+            case "PENDING" -> "예약 대기";
+            case "CONFIRMED" -> "예약 확정";
+            case "COMPLETED" -> "이용 완료";
+            case "CANCELLED", "CANCELLED_USER" -> "회원 취소";
+            case "CANCELLED_ADMIN" -> "관리자 취소";
+            case "NO_SHOW" -> "노쇼";
+            default -> status;
+        };
     }
 }

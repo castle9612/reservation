@@ -498,6 +498,32 @@ p { line-height: 1.75; color: #6a5647; }
   background: rgba(247, 238, 228, 0.7);
 }
 
+.attachment-links,
+.status-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.attachment-links a,
+.status-counts span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 12px;
+  background: rgba(247, 238, 228, 0.94);
+  color: #6d4932;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.attachment-links a:hover {
+  color: #bf6e37;
+}
+
 .soft-card img {
   border-radius: 18px;
   height: 280px;

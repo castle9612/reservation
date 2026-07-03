@@ -81,6 +81,24 @@ const staffFormInit = { name: '', profilePicture: '', profileImage: null };
 const announcementFormInit = { title: '', content: '', newAttachmentFiles: [], deletedAttachmentPaths: [] };
 const reservationFormInit = { id: '', courseId: '', reservationDateTime: '', name: '', phoneNumber: '', status: 'PENDING' };
 const userFormInit = { userId: '', name: '', email: '', phoneNumber: '', role: 'USER', gender: '', birthdate: '', maritalStatus: false, packageCount: 0, memo: '' };
+const reservationStatusOptions = [
+  ['PENDING', '예약 대기'],
+  ['CONFIRMED', '예약 확정'],
+  ['COMPLETED', '이용 완료'],
+  ['CANCELLED', '취소'],
+  ['CANCELLED_USER', '회원 취소'],
+  ['CANCELLED_ADMIN', '관리자 취소'],
+  ['NO_SHOW', '노쇼'],
+];
+const userStatusSummaryOptions = [
+  ['PENDING', '대기'],
+  ['CONFIRMED', '확정'],
+  ['COMPLETED', '완료'],
+  ['CANCELLED', '취소'],
+  ['CANCELLED_USER', '회원취소'],
+  ['CANCELLED_ADMIN', '관리자취소'],
+  ['NO_SHOW', '노쇼'],
+];
 const kakaoMapTimestamp = import.meta.env.VITE_KAKAO_MAP_TIMESTAMP || '1776303319351';
 const kakaoMapKey = import.meta.env.VITE_KAKAO_MAP_KEY || '2acjrw73oay7';
 const kakaoMapContainerId = `daumRoughmapContainer${kakaoMapTimestamp}`;
@@ -588,6 +606,19 @@ function App() {
     return normalized === 'ADMIN' ? 'ADMIN' : 'USER';
   }
 
+  function statusLabel(status) {
+    const normalized = String(status || 'PENDING').toUpperCase();
+    return reservationStatusOptions.find(([value]) => value === normalized)?.[1] || normalized;
+  }
+
+  function mergedCancelCount(counts = {}) {
+    return Number(counts.CANCELLED || 0) + Number(counts.CANCELLED_USER || 0) + Number(counts.CANCELLED_ADMIN || 0);
+  }
+
+  function attachmentName(announcement, index, path) {
+    return announcement?.originalAttachmentNames?.[index] || path?.split('/').pop() || `첨부파일 ${index + 1}`;
+  }
+
   function reservationOwnerLabel(reservation) {
     return reservation.userId || reservation.name || '비회원 예약';
   }
@@ -976,6 +1007,27 @@ function App() {
     }
   }
 
+  async function insertAnnouncementBodyImage(file) {
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const uploaded = await api('/api/admin/announcements/images', { method: 'POST', body: formData, useCsrf: true });
+      if (!uploaded?.url) {
+        throw new Error('이미지 업로드 응답을 확인할 수 없습니다.');
+      }
+
+      const imageMarkup = `<p><img src="${uploaded.url}" alt="${file.name.replaceAll('"', '')}" /></p>`;
+      setAdminAnnouncementForm((prev) => ({
+        ...prev,
+        content: `${prev.content || ''}\n${imageMarkup}`,
+      }));
+      setNotice({ type: 'success', text: '본문에 이미지가 추가되었습니다. 저장을 눌러 공지에 반영해 주세요.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '본문 이미지 업로드에 실패했습니다.' });
+    }
+  }
+
   async function deleteAdminAnnouncement(announcementId) {
     if (!window.confirm('이 공지사항을 삭제하시겠습니까?')) return;
     try {
@@ -1088,6 +1140,18 @@ function App() {
       setNotice({ type: 'success', text: '회원 정보가 수정되었습니다.' });
     } catch (error) {
       setNotice({ type: 'error', text: error.message || '회원 정보 수정에 실패했습니다.' });
+    }
+  }
+
+  async function deleteAdminUser(userId) {
+    if (!window.confirm(`${userId} 회원을 삭제하시겠습니까? 예약 기록은 운영 기록으로 보존됩니다.`)) return;
+    try {
+      await api(`/api/admin/users/${encodeURIComponent(userId)}`, { method: 'DELETE', useCsrf: true });
+      await loadAdminUsers();
+      if (editingUserId === userId) resetAdminUserForm();
+      setNotice({ type: 'success', text: '회원이 삭제되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '회원 삭제에 실패했습니다.' });
     }
   }
 
@@ -1326,6 +1390,15 @@ function App() {
                     <span>{formatDate(item.createdAt)}</span>
                   </div>
                   <div className="html-content" dangerouslySetInnerHTML={{ __html: item.content || '<p>등록된 내용이 없습니다.</p>' }} />
+                  {(item.attachmentPaths || []).length > 0 && (
+                    <div className="attachment-links">
+                      {(item.attachmentPaths || []).map((path, index) => (
+                        <a key={`${item.id}-${path}`} href={`/announcement/attachment/${item.id}/${index}`}>
+                          {attachmentName(item, index, path)}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
@@ -1465,7 +1538,7 @@ function App() {
                     <h3>{item.name || '비회원 예약'}</h3>
                     <span>{formatDate(item.reservationDateTime)}</span>
                   </div>
-                  <p>코스 ID {item.courseId} / {item.status || '예약 완료'}</p>
+                  <p>코스 ID {item.courseId} / {statusLabel(item.status)}</p>
                 </article>
               ))}
             </div>
@@ -1494,7 +1567,7 @@ function App() {
                     <h3>{myPage.userName || auth.userId}</h3>
                     <span>{formatDate(item.reservationDateTime)}</span>
                   </div>
-                  <p>코스 ID {item.courseId} / {item.status || '예약 완료'}</p>
+                  <p>코스 ID {item.courseId} / {statusLabel(item.status)}</p>
                 </article>
               ))}
             </div>
@@ -1713,9 +1786,15 @@ function App() {
                     </div>
                     <p>{user.email} / {formatPhoneNumber(user.phoneNumber)}</p>
                     <p>패키지 {user.packageCount || 0}회</p>
+                    <div className="status-counts">
+                      {userStatusSummaryOptions.map(([status, label]) => (
+                        <span key={`${user.userId}-${status}`}>{label} {Number(user.reservationStatusCounts?.[status] || 0)}</span>
+                      ))}
+                    </div>
                     {user.memo ? <p>{user.memo}</p> : null}
                     <div className="button-row">
                       <button className="button secondary" type="button" onClick={() => startEditUser(user)}>수정</button>
+                      <button className="button secondary danger" type="button" onClick={() => deleteAdminUser(user.userId)}>삭제</button>
                     </div>
                   </article>
                 ))}
@@ -1738,7 +1817,12 @@ function App() {
                 <h3>{editingReservationId ? '예약 수정' : '예약을 선택해 주세요'}</h3>
                 <label><span>코스</span><select name="courseId" value={adminReservationForm.courseId} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} required><option value="">코스 선택</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
                 <label><span>예약 일시</span><input type="datetime-local" name="reservationDateTime" value={adminReservationForm.reservationDateTime} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} required /></label>
-                <label><span>상태</span><select name="status" value={adminReservationForm.status} onChange={update(setAdminReservationForm)} disabled={!editingReservationId}><option value="PENDING">PENDING</option><option value="CONFIRMED">CONFIRMED</option><option value="CANCELLED">CANCELLED</option></select></label>
+                <label>
+                  <span>상태</span>
+                  <select name="status" value={adminReservationForm.status} onChange={update(setAdminReservationForm)} disabled={!editingReservationId}>
+                    {reservationStatusOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                </label>
                 <div className="two-column">
                   <label><span>비회원 이름</span><input name="name" value={adminReservationForm.name} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} /></label>
                   <label><span>비회원 전화번호</span><input name="phoneNumber" value={adminReservationForm.phoneNumber} onChange={(event) => setAdminReservationForm((prev) => ({ ...prev, phoneNumber: formatPhoneNumber(event.target.value) }))} disabled={!editingReservationId} /></label>
@@ -1754,7 +1838,7 @@ function App() {
                   <article className="list-card" key={reservation.id}>
                     <div className="list-head">
                       <h3>{reservationOwnerLabel(reservation)}</h3>
-                      <span>{reservation.status || 'PENDING'}</span>
+                      <span>{reservation.statusLabel || statusLabel(reservation.status)}</span>
                     </div>
                     <p>{reservation.courseName || `코스 ID ${reservation.courseId || '-'}`}</p>
                     <p>{formatDate(reservation.reservationDateTime)}</p>
@@ -1885,6 +1969,7 @@ function App() {
                     ))}
                   </div>
                 )}
+                <label><span>본문 이미지 삽입</span><input type="file" accept="image/*" onChange={(event) => insertAnnouncementBodyImage(event.target.files?.[0] || null)} /></label>
                 <label><span>첨부파일 추가</span><input type="file" multiple onChange={(event) => setAdminAnnouncementForm((prev) => ({ ...prev, newAttachmentFiles: event.target.files || [] }))} /></label>
                 <div className="button-row">
                   <button className="button" type="submit">{editingAnnouncementId ? '공지 저장' : '공지 등록'}</button>
@@ -1900,6 +1985,15 @@ function App() {
                       <span>{formatDate(announcement.createdAt)}</span>
                     </div>
                     <div className="html-content" dangerouslySetInnerHTML={{ __html: announcement.content || '<p>등록된 내용이 없습니다.</p>' }} />
+                    {(announcement.attachmentPaths || []).length > 0 && (
+                      <div className="attachment-links">
+                        {(announcement.attachmentPaths || []).map((path, index) => (
+                          <a key={`${announcement.id}-${path}`} href={`/announcement/attachment/${announcement.id}/${index}`}>
+                            {attachmentName(announcement, index, path)}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                     <div className="button-row">
                       <button className="button secondary" type="button" onClick={() => startEditAnnouncement(announcement)}>수정</button>
                       <button className="button secondary danger" type="button" onClick={() => deleteAdminAnnouncement(announcement.id)}>삭제</button>
