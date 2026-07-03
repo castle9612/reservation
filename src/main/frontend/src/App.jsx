@@ -1632,7 +1632,7 @@ function App() {
                 <article className="list-card" key={item.id}>
                   <div className="list-head">
                     <h3>{item.title}</h3>
-                    <span>{formatDate(item.createdAt)}</span>
+                    <span>{formatDateOnly(item.createdAt)}</span>
                   </div>
                   <HtmlContent html={item.content} />
                   {(item.attachmentPaths || []).length > 0 && (
@@ -2375,7 +2375,7 @@ function App() {
                   <article className="list-card" key={announcement.id}>
                     <div className="list-head">
                       <h3>{announcement.title}</h3>
-                      <span>{formatDate(announcement.createdAt)}</span>
+                      <span>{formatDateOnly(announcement.createdAt)}</span>
                     </div>
                     <HtmlContent html={announcement.content} />
                     {(announcement.attachmentPaths || []).length > 0 && (
