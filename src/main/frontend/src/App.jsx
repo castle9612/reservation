@@ -1370,7 +1370,7 @@ function App() {
           expiresAt: adminCouponForm.expiresAt || null,
         }),
       });
-      await Promise.all([loadAdminCoupons(), loadMyPage()]);
+      await loadAdminCoupons();
       resetAdminCouponForm();
       setNotice({ type: 'success', text: editingCouponId ? '쿠폰이 수정되었습니다.' : '쿠폰이 발급되었습니다.' });
     } catch (error) {
@@ -1382,7 +1382,7 @@ function App() {
     if (!window.confirm('이 쿠폰을 삭제하시겠습니까?')) return;
     try {
       await api(`/api/admin/coupons/${couponId}`, { method: 'DELETE', useCsrf: true });
-      await Promise.all([loadAdminCoupons(), loadMyPage()]);
+      await loadAdminCoupons();
       if (editingCouponId === couponId) resetAdminCouponForm();
       setNotice({ type: 'success', text: '쿠폰이 삭제되었습니다.' });
     } catch (error) {
