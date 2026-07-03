@@ -29,9 +29,7 @@ public class AdminUserDetailsController {
     @GetMapping("/admin/users")
     @PreAuthorize("hasRole('ADMIN')")
     public String userList(Model model) {
-        List<UserEntity> users = userRepository.findAll();
-        model.addAttribute("users", users);
-        return "admin/user_list";
+        return "forward:/react-app/index.html";
     }
 
     @PostMapping("/admin/userdetails/{userId}")

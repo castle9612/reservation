@@ -84,6 +84,7 @@ public class WebSecurityConfig {
                         .requestMatchers(
                                 "/admin",
                                 "/admin/dashboard",
+                                "/admin/content",
                                 "/admin/users",
                                 "/admin/reservations",
                                 "/admin/courses",
@@ -95,6 +96,7 @@ public class WebSecurityConfig {
                                 "/api/auth/csrf",
                                 "/api/auth/me",
                                 "/api/auth/signup/availability",
+                                "/api/site-content",
                                 "/api/public/**",
                                 "/api/courses",
                                 "/api/courses/*",
@@ -115,6 +117,7 @@ public class WebSecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/mypage").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/reviews/*", "/api/mypage").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/reviews/*").authenticated()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form

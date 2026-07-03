@@ -154,6 +154,20 @@ button, input, select, textarea { font: inherit; }
   background: rgba(248, 237, 225, 0.94);
 }
 
+.button.danger,
+.button.secondary.danger {
+  color: #9a3f31;
+  background: rgba(252, 236, 232, 0.96);
+}
+
+.button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 .utility-button {
   min-height: 48px;
   padding: 12px 18px;
@@ -276,6 +290,11 @@ p { line-height: 1.75; color: #6a5647; }
 .home-hero-copy h1 {
   font-size: clamp(38px, 5vw, 72px);
   line-height: 1.03;
+}
+
+.home-hero-copy p {
+  max-width: 560px;
+  color: #fff1e4;
 }
 
 .notice {
@@ -405,6 +424,78 @@ p { line-height: 1.75; color: #6a5647; }
 .admin-toolbar {
   grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
   margin-bottom: 18px;
+}
+
+.admin-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-section-head {
+  display: grid;
+  gap: 6px;
+  max-width: 840px;
+}
+
+.admin-section-head h2 {
+  margin-bottom: 0;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-form {
+  position: sticky;
+  top: 16px;
+}
+
+.admin-stat {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-stat span {
+  color: #8a6a52;
+  font-weight: 700;
+}
+
+.admin-stat h3 {
+  font-size: 44px;
+  line-height: 1;
+}
+
+.admin-preview {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-preview img,
+.staff-admin-card img {
+  width: 100%;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+.admin-preview img {
+  min-height: 280px;
+  max-height: 420px;
+}
+
+.staff-admin-card img {
+  height: 180px;
+  margin-bottom: 12px;
+}
+
+.attachment-list {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(247, 238, 228, 0.7);
 }
 
 .soft-card img {
@@ -604,8 +695,13 @@ textarea {
   .location-panel,
   .sub-hero,
   .review-summary,
-  .review-layout {
+  .review-layout,
+  .admin-layout {
     grid-template-columns: 1fr;
+  }
+
+  .admin-form {
+    position: static;
   }
 
   .header-nav {

@@ -9,14 +9,17 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: reservation
       TZ: Asia/Seoul
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
-      - --default-time-zone=Asia/Seoul
+      - --default-time-zone=+09:00
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   app:
     build:
@@ -25,16 +28,32 @@ services:
     container_name: reservation-app
     restart: unless-stopped
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     env_file:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      DB_URL: ${APP_DB_URL:-jdbc:mysql://mysql:3306/reservation?serverTimezone=Asia/Seoul&characterEncoding=UTF-8}
+      DB_URL: jdbc:mysql://mysql:3306/reservation?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&useSSL=false
       DB_USERNAME: ${DB_USERNAME:-root}
       DB_PASSWORD: ${DB_PASSWORD}
+      JPA_DDL_AUTO: update
     ports:
       - "8080:8080"
 
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "81:81"
+      - "443:443"
+    volumes:
+      - npm_data:/data
+      - npm_letsencrypt:/etc/letsencrypt
+
 volumes:
   mysql_data:
+  npm_data:
+  npm_letsencrypt:

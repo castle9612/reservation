@@ -1,7 +1,9 @@
 package com.reservation.web.service;
 
 import com.reservation.web.dto.StaffDTO;
+import com.reservation.web.entity.CourseEntity;
 import com.reservation.web.entity.StaffEntity;
+import com.reservation.web.repository.CourseRepository;
 import com.reservation.web.repository.StaffRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -21,11 +23,14 @@ import java.util.stream.Collectors;
 @Service
 public class StaffService {
     private final StaffRepository staffRepository;
+    private final CourseRepository courseRepository;
     private final Path uploadRoot;
 
     public StaffService(StaffRepository staffRepository,
+                        CourseRepository courseRepository,
                         @Value("${file.upload-dir}") String uploadDir) throws IOException {
         this.staffRepository = staffRepository;
+        this.courseRepository = courseRepository;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(this.uploadRoot);
     }
@@ -89,6 +94,9 @@ public class StaffService {
         if (!staffRepository.existsById(id)) {
             throw new IllegalArgumentException("삭제할 직원을 찾을 수 없습니다: " + id);
         }
+        List<CourseEntity> assignedCourses = courseRepository.findByStaff_Id(id);
+        assignedCourses.forEach(course -> course.setStaff(null));
+        courseRepository.saveAll(assignedCourses);
         staffRepository.deleteById(id);
     }
 

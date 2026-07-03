@@ -111,8 +111,7 @@ public class AnnouncementController {
 
         @GetMapping
         public String adminListAnnouncements(Model model) {
-            model.addAttribute("announcements", announcementService.findAll());
-            return "announcement/list";
+            return "forward:/react-app/index.html";
         }
 
         @GetMapping("/new")

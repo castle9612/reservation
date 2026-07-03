@@ -1,13 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-const heroImages = [
-  `${import.meta.env.BASE_URL}hero-1.jpg`,
-  `${import.meta.env.BASE_URL}hero-2.jpg`,
-  `${import.meta.env.BASE_URL}hero-3.jpg`,
-];
+const fallbackHeroImage = `${import.meta.env.BASE_URL}hero-default.jpg`;
 
 const adminPages = [
   ['admin-dashboard', '대시보드'],
+  ['admin-content', '메인 관리'],
   ['admin-users', '회원 관리'],
   ['admin-reservations', '예약 관리'],
   ['admin-courses', '프로그램 관리'],
@@ -30,6 +27,7 @@ const viewPathMap = {
   signup: '/signup',
   admin: '/admin',
   'admin-dashboard': '/admin/dashboard',
+  'admin-content': '/admin/content',
   'admin-users': '/admin/users',
   'admin-reservations': '/admin/reservations',
   'admin-courses': '/admin/courses',
@@ -40,17 +38,9 @@ const viewPathMap = {
 function resolveViewFromPath(pathname) {
   const normalized = pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
   const matchedEntry = Object.entries(viewPathMap).find(([, path]) => path === normalized);
+  if (matchedEntry?.[0] === 'admin') return 'admin-dashboard';
   return matchedEntry?.[0] || 'home';
 }
-
-const adminLinks = [
-  ['/admin/dashboard', '대시보드'],
-  ['/admin/users', '회원 관리'],
-  ['/reservations/admin', '예약 관리'],
-  ['/courses/new', '코스 관리'],
-  ['/staff/new', '스태프 관리'],
-  ['/admin/announcements/new', '공지 관리'],
-];
 
 const loginInit = { userId: '', password: '' };
 const signupInit = {
@@ -75,9 +65,22 @@ const guestSearchInit = { name: '', phoneNumber: '' };
 const memberInit = { courseId: '', reservationDateTime: '' };
 const myPageInit = { userId: '', userName: '', userEmail: '', phoneNumber: '', password: '', packageCount: 0, memo: '' };
 const reviewInit = { reviewerName: '', rating: 5, content: '', images: [] };
-const storeName = import.meta.env.VITE_STORE_NAME || '라본 바디 테라피';
-const storeAddress = import.meta.env.VITE_STORE_ADDRESS || '예약 전 위치와 이동 동선을 먼저 확인해 두시면 보다 편안하게 방문하실 수 있습니다.';
-const storePhone = import.meta.env.VITE_STORE_PHONE || '';
+const defaultSiteContent = {
+  brandName: import.meta.env.VITE_STORE_NAME || '라본 바디 테라피',
+  heroEyebrow: '웰니스 스테이',
+  heroTitle: '편안한 회복, 가벼운 시작',
+  heroDescription: '차분한 테라피 시간으로 몸의 긴장을 내려놓고, 다시 일상을 시작할 수 있도록 돕습니다.',
+  heroImagePath: '',
+  storeName: import.meta.env.VITE_STORE_NAME || '라본 바디 테라피',
+  storeAddress: import.meta.env.VITE_STORE_ADDRESS || '예약 전 위치와 이동 동선을 먼저 확인해 두시면 보다 편안하게 방문하실 수 있습니다.',
+  storePhone: import.meta.env.VITE_STORE_PHONE || '',
+  locationDescription: '차분한 테라피 시간으로 이어질 수 있도록 매장 위치를 한눈에 확인하실 수 있게 준비했습니다.',
+};
+const courseFormInit = { name: '', staffId: '', durationMinutes: 60, memberPrice: 0, nonMemberPrice: 0 };
+const staffFormInit = { name: '', profilePicture: '', profileImage: null };
+const announcementFormInit = { title: '', content: '', newAttachmentFiles: [], deletedAttachmentPaths: [] };
+const reservationFormInit = { id: '', courseId: '', reservationDateTime: '', name: '', phoneNumber: '', status: 'PENDING' };
+const userFormInit = { userId: '', name: '', email: '', phoneNumber: '', role: 'USER', gender: '', birthdate: '', maritalStatus: false, packageCount: 0, memo: '' };
 const kakaoMapTimestamp = import.meta.env.VITE_KAKAO_MAP_TIMESTAMP || '1776303319351';
 const kakaoMapKey = import.meta.env.VITE_KAKAO_MAP_KEY || '2acjrw73oay7';
 const kakaoMapContainerId = `daumRoughmapContainer${kakaoMapTimestamp}`;
@@ -90,6 +93,7 @@ function App() {
   const [csrf, setCsrf] = useState(null);
   const [notice, setNotice] = useState(null);
   const [auth, setAuth] = useState({ authenticated: false, userId: null, role: null });
+  const [siteContent, setSiteContent] = useState(defaultSiteContent);
   const [courses, setCourses] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [staff, setStaff] = useState([]);
@@ -110,10 +114,22 @@ function App() {
   const [memberForm, setMemberForm] = useState(memberInit);
   const [reviewForm, setReviewForm] = useState(reviewInit);
   const [editingReviewId, setEditingReviewId] = useState(null);
+  const [siteContentForm, setSiteContentForm] = useState(defaultSiteContent);
+  const [siteHeroImageFile, setSiteHeroImageFile] = useState(null);
+  const [adminCourseForm, setAdminCourseForm] = useState(courseFormInit);
+  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [adminStaffForm, setAdminStaffForm] = useState(staffFormInit);
+  const [editingStaffId, setEditingStaffId] = useState(null);
+  const [adminAnnouncementForm, setAdminAnnouncementForm] = useState(announcementFormInit);
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState(null);
+  const [adminReservationForm, setAdminReservationForm] = useState(reservationFormInit);
+  const [editingReservationId, setEditingReservationId] = useState(null);
+  const [adminUserForm, setAdminUserForm] = useState(userFormInit);
+  const [editingUserId, setEditingUserId] = useState(null);
   const mapContainerRef = useRef(null);
 
   const isAdmin = auth.role === 'ROLE_ADMIN';
-  const heroImage = useMemo(() => heroImages[new Date().getDate() % heroImages.length], []);
+  const heroImage = asset(siteContent.heroImagePath) || fallbackHeroImage;
   const passwordConfirmState = !signupForm.passwordConfirm
     ? null
     : signupForm.password === signupForm.passwordConfirm
@@ -140,12 +156,15 @@ function App() {
 
     let isDisposed = false;
     let frameId = null;
+    let rendered = false;
 
     const renderMap = () => {
       const container = document.getElementById(kakaoMapContainerId);
-      if (isDisposed || !window.daum?.roughmap?.Lander || !container) return;
+      if (isDisposed || rendered || !window.daum?.roughmap?.Lander || !container) return;
 
-      const mapWidth = String(Math.max(container.offsetWidth || 640, 320));
+      rendered = true;
+
+      const mapWidth = String(Math.max(container.clientWidth || container.offsetWidth || 640, 320));
       const mapHeight = window.innerWidth <= 720 ? '320' : '420';
 
       container.innerHTML = '';
@@ -211,25 +230,27 @@ function App() {
     };
 
     const cleanupLoader = ensureRoughmapLoader();
-    const handleResize = () => renderMap();
-    window.addEventListener('resize', handleResize);
 
     return () => {
       isDisposed = true;
       if (frameId) {
         window.cancelAnimationFrame(frameId);
       }
-      window.removeEventListener('resize', handleResize);
       if (typeof cleanupLoader === 'function') cleanupLoader();
+      const container = document.getElementById(kakaoMapContainerId);
+      if (container) {
+        container.innerHTML = '';
+      }
     };
   }, [kakaoMapContainerId, kakaoMapKey, kakaoMapTimestamp, loading, view]);
 
   async function bootstrap() {
     setLoading(true);
     try {
-      const [token, me, courseData, announcementData, staffData, reviewData] = await Promise.all([
+      const [token, me, siteContentData, courseData, announcementData, staffData, reviewData] = await Promise.all([
         fetchCsrf(),
         api('/api/auth/me'),
+        api('/api/site-content'),
         api('/api/courses'),
         api('/api/public/announcements'),
         api('/api/public/staff'),
@@ -238,6 +259,7 @@ function App() {
 
       setCsrf(token);
       setAuth(me || { authenticated: false, userId: null, role: null });
+      applySiteContent(siteContentData);
       setCourses(courseData || []);
       setAnnouncements(announcementData || []);
       setStaff(staffData || []);
@@ -316,8 +338,30 @@ function App() {
     setAdminReservations((await api('/api/admin/reservations')) || []);
   }
 
+  async function loadCourses() {
+    setCourses((await api('/api/courses')) || []);
+  }
+
+  async function loadAnnouncements() {
+    setAnnouncements((await api('/api/public/announcements')) || []);
+  }
+
+  async function loadStaff() {
+    setStaff((await api('/api/public/staff')) || []);
+  }
+
+  async function loadSiteContent() {
+    applySiteContent(await api('/api/site-content'));
+  }
+
   async function refreshReviews() {
     applyReviewState(await api('/api/reviews'));
+  }
+
+  function applySiteContent(data) {
+    const nextContent = { ...defaultSiteContent, ...(data || {}) };
+    setSiteContent(nextContent);
+    setSiteContentForm(nextContent);
   }
 
   function applyReviewState(data) {
@@ -525,6 +569,27 @@ function App() {
 
   function formatMoney(value) {
     return `${new Intl.NumberFormat('ko-KR').format(Number(value || 0))}원`;
+  }
+
+  function toDateTimeInputValue(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return offsetDate.toISOString().slice(0, 16);
+  }
+
+  function appendJsonPart(formData, name, value) {
+    formData.append(name, new Blob([JSON.stringify(value)], { type: 'application/json' }));
+  }
+
+  function normalizeRole(role) {
+    const normalized = String(role || 'USER').replace(/^ROLE_/, '').toUpperCase();
+    return normalized === 'ADMIN' ? 'ADMIN' : 'USER';
+  }
+
+  function reservationOwnerLabel(reservation) {
+    return reservation.userId || reservation.name || '비회원 예약';
   }
 
   async function submitLogin(event) {
@@ -757,6 +822,275 @@ function App() {
     jump('reviews');
   }
 
+  async function submitSiteContent(event) {
+    event.preventDefault();
+    try {
+      const formData = new FormData();
+      appendJsonPart(formData, 'content', siteContentForm);
+      if (siteHeroImageFile) formData.append('heroImage', siteHeroImageFile);
+
+      const savedContent = await api('/api/admin/site-content', { method: 'PUT', body: formData, useCsrf: true });
+      applySiteContent(savedContent);
+      setSiteHeroImageFile(null);
+      setNotice({ type: 'success', text: '메인 화면 사진과 문구가 저장되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '메인 화면 저장에 실패했습니다.' });
+    }
+  }
+
+  function resetAdminCourseForm() {
+    setEditingCourseId(null);
+    setAdminCourseForm(courseFormInit);
+  }
+
+  function startEditCourse(course) {
+    setEditingCourseId(course.id);
+    setAdminCourseForm({
+      name: course.name || '',
+      staffId: course.staffId ? String(course.staffId) : '',
+      durationMinutes: course.durationMinutes || 60,
+      memberPrice: course.memberPrice || 0,
+      nonMemberPrice: course.nonMemberPrice || 0,
+    });
+  }
+
+  async function submitAdminCourse(event) {
+    event.preventDefault();
+    try {
+      const payload = {
+        ...adminCourseForm,
+        staffId: adminCourseForm.staffId ? Number(adminCourseForm.staffId) : null,
+        durationMinutes: Number(adminCourseForm.durationMinutes || 0),
+        memberPrice: Number(adminCourseForm.memberPrice || 0),
+        nonMemberPrice: Number(adminCourseForm.nonMemberPrice || 0),
+      };
+      await api(editingCourseId ? `/api/admin/courses/${editingCourseId}` : '/api/admin/courses', {
+        method: editingCourseId ? 'PUT' : 'POST',
+        useCsrf: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      await loadCourses();
+      resetAdminCourseForm();
+      setNotice({ type: 'success', text: editingCourseId ? '코스가 수정되었습니다.' : '코스가 등록되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '코스 저장에 실패했습니다.' });
+    }
+  }
+
+  async function deleteAdminCourse(courseId) {
+    if (!window.confirm('이 코스와 관련 예약을 함께 삭제하시겠습니까?')) return;
+    try {
+      await api(`/api/admin/courses/${courseId}`, { method: 'DELETE', useCsrf: true });
+      await Promise.all([loadCourses(), loadAdminReservations(), loadMyReservations()]);
+      if (editingCourseId === courseId) resetAdminCourseForm();
+      setNotice({ type: 'success', text: '코스가 삭제되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '코스 삭제에 실패했습니다.' });
+    }
+  }
+
+  function resetAdminStaffForm() {
+    setEditingStaffId(null);
+    setAdminStaffForm(staffFormInit);
+  }
+
+  function startEditStaff(member) {
+    setEditingStaffId(member.id);
+    setAdminStaffForm({ name: member.name || '', profilePicture: member.profilePicture || '', profileImage: null });
+  }
+
+  async function submitAdminStaff(event) {
+    event.preventDefault();
+    try {
+      const formData = new FormData();
+      appendJsonPart(formData, 'staff', {
+        id: editingStaffId,
+        name: adminStaffForm.name,
+        profilePicture: adminStaffForm.profilePicture,
+      });
+      if (adminStaffForm.profileImage) formData.append('profileImage', adminStaffForm.profileImage);
+
+      await api(editingStaffId ? `/api/admin/staff/${editingStaffId}` : '/api/admin/staff', {
+        method: editingStaffId ? 'PUT' : 'POST',
+        body: formData,
+        useCsrf: true,
+      });
+      await loadStaff();
+      resetAdminStaffForm();
+      setNotice({ type: 'success', text: editingStaffId ? '스태프가 수정되었습니다.' : '스태프가 등록되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '스태프 저장에 실패했습니다.' });
+    }
+  }
+
+  async function deleteAdminStaff(staffId) {
+    if (!window.confirm('이 스태프를 삭제하고 담당 코스 연결을 해제하시겠습니까?')) return;
+    try {
+      await api(`/api/admin/staff/${staffId}`, { method: 'DELETE', useCsrf: true });
+      await Promise.all([loadStaff(), loadCourses()]);
+      if (editingStaffId === staffId) resetAdminStaffForm();
+      setNotice({ type: 'success', text: '스태프가 삭제되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '스태프 삭제에 실패했습니다.' });
+    }
+  }
+
+  function resetAdminAnnouncementForm() {
+    setEditingAnnouncementId(null);
+    setAdminAnnouncementForm(announcementFormInit);
+  }
+
+  function startEditAnnouncement(announcement) {
+    setEditingAnnouncementId(announcement.id);
+    setAdminAnnouncementForm({
+      title: announcement.title || '',
+      content: announcement.content || '',
+      newAttachmentFiles: [],
+      deletedAttachmentPaths: [],
+    });
+  }
+
+  async function submitAdminAnnouncement(event) {
+    event.preventDefault();
+    try {
+      const formData = new FormData();
+      appendJsonPart(formData, 'announcement', {
+        id: editingAnnouncementId,
+        title: adminAnnouncementForm.title,
+        content: adminAnnouncementForm.content,
+      });
+      Array.from(adminAnnouncementForm.newAttachmentFiles || []).forEach((file) => formData.append('newAttachmentFiles', file));
+      (adminAnnouncementForm.deletedAttachmentPaths || []).forEach((path) => formData.append('deletedAttachmentPaths', path));
+
+      await api(editingAnnouncementId ? `/api/admin/announcements/${editingAnnouncementId}` : '/api/admin/announcements', {
+        method: editingAnnouncementId ? 'PUT' : 'POST',
+        body: formData,
+        useCsrf: true,
+      });
+      await loadAnnouncements();
+      resetAdminAnnouncementForm();
+      setNotice({ type: 'success', text: editingAnnouncementId ? '공지사항이 수정되었습니다.' : '공지사항이 등록되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '공지사항 저장에 실패했습니다.' });
+    }
+  }
+
+  async function deleteAdminAnnouncement(announcementId) {
+    if (!window.confirm('이 공지사항을 삭제하시겠습니까?')) return;
+    try {
+      await api(`/api/admin/announcements/${announcementId}`, { method: 'DELETE', useCsrf: true });
+      await loadAnnouncements();
+      if (editingAnnouncementId === announcementId) resetAdminAnnouncementForm();
+      setNotice({ type: 'success', text: '공지사항이 삭제되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '공지사항 삭제에 실패했습니다.' });
+    }
+  }
+
+  function resetAdminReservationForm() {
+    setEditingReservationId(null);
+    setAdminReservationForm(reservationFormInit);
+  }
+
+  function startEditReservation(reservation) {
+    setEditingReservationId(reservation.id);
+    setAdminReservationForm({
+      id: reservation.id,
+      courseId: reservation.courseId ? String(reservation.courseId) : '',
+      reservationDateTime: toDateTimeInputValue(reservation.reservationDateTime),
+      name: reservation.name || '',
+      phoneNumber: formatPhoneNumber(reservation.phoneNumber || ''),
+      status: reservation.status || 'PENDING',
+    });
+  }
+
+  async function submitAdminReservation(event) {
+    event.preventDefault();
+    if (!editingReservationId) {
+      setNotice({ type: 'error', text: '수정할 예약을 선택해 주세요.' });
+      return;
+    }
+    try {
+      await api(`/api/admin/reservations/${editingReservationId}`, {
+        method: 'PUT',
+        useCsrf: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: adminReservationForm.courseId ? Number(adminReservationForm.courseId) : null,
+          reservationDateTime: adminReservationForm.reservationDateTime,
+          name: adminReservationForm.name,
+          phoneNumber: normalizePhoneNumber(adminReservationForm.phoneNumber),
+          status: adminReservationForm.status,
+        }),
+      });
+      await Promise.all([loadAdminReservations(), loadMyReservations()]);
+      resetAdminReservationForm();
+      setNotice({ type: 'success', text: '예약이 수정되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '예약 수정에 실패했습니다.' });
+    }
+  }
+
+  async function deleteAdminReservation(reservationId) {
+    if (!window.confirm('이 예약을 삭제하시겠습니까?')) return;
+    try {
+      await api(`/api/admin/reservations/${reservationId}`, { method: 'DELETE', useCsrf: true });
+      await Promise.all([loadAdminReservations(), loadMyReservations()]);
+      if (editingReservationId === reservationId) resetAdminReservationForm();
+      setNotice({ type: 'success', text: '예약이 삭제되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '예약 삭제에 실패했습니다.' });
+    }
+  }
+
+  function resetAdminUserForm() {
+    setEditingUserId(null);
+    setAdminUserForm(userFormInit);
+  }
+
+  function startEditUser(user) {
+    setEditingUserId(user.userId);
+    setAdminUserForm({
+      userId: user.userId || '',
+      name: user.name || '',
+      email: user.email || '',
+      phoneNumber: formatPhoneNumber(user.phoneNumber || ''),
+      role: normalizeRole(user.role),
+      gender: user.gender || '',
+      birthdate: user.birthdate || '',
+      maritalStatus: Boolean(user.maritalStatus),
+      packageCount: user.packageCount || 0,
+      memo: user.memo || '',
+    });
+  }
+
+  async function submitAdminUser(event) {
+    event.preventDefault();
+    if (!editingUserId) {
+      setNotice({ type: 'error', text: '수정할 회원을 선택해 주세요.' });
+      return;
+    }
+    try {
+      await api(`/api/admin/users/${encodeURIComponent(editingUserId)}`, {
+        method: 'PUT',
+        useCsrf: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...adminUserForm,
+          phoneNumber: normalizePhoneNumber(adminUserForm.phoneNumber),
+          packageCount: Number(adminUserForm.packageCount || 0),
+          role: normalizeRole(adminUserForm.role),
+        }),
+      });
+      await Promise.all([loadAdminUsers(), loadMyPage()]);
+      resetAdminUserForm();
+      setNotice({ type: 'success', text: '회원 정보가 수정되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '회원 정보 수정에 실패했습니다.' });
+    }
+  }
+
   async function logout() {
     try {
       await api('/api/auth/logout', { method: 'POST', useCsrf: true });
@@ -774,10 +1108,26 @@ function App() {
     }
   }
 
+  function renderAdminToolbar() {
+    return (
+      <div className="admin-toolbar">
+        {adminPages.map(([adminView, label]) => (
+          <button
+            key={adminView}
+            className={`button ${view === adminView ? '' : 'secondary'}`}
+            type="button"
+            onClick={() => jump(adminView)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   function renderNotice(targetViews) {
     if (!notice) return null;
     if (targetViews && !targetViews.includes(view)) return null;
-    if (notice.type === 'success') return null;
     return <div className={`notice ${notice.type} inline`}>{notice.text}</div>;
   }
 
@@ -835,7 +1185,7 @@ function App() {
             </div>
 
             {auth.authenticated && <button className={`nav-link ${view === 'mypage' ? 'active' : ''}`} onClick={() => jump('mypage')}>마이페이지</button>}
-            {isAdmin && <button className="nav-link" onClick={() => { window.location.href = '/admin/dashboard'; }}>관리자</button>}
+            {isAdmin && <button className={`nav-link ${view.startsWith('admin') ? 'active' : ''}`} onClick={() => jump('admin-dashboard')}>관리자</button>}
           </nav>
 
           <div className="header-actions">
@@ -869,7 +1219,9 @@ function App() {
           <div className="home-hero">
             <img src={heroImage} alt="테라피 메인 이미지" />
             <div className="home-hero-copy">
-              <h1>편안한 회복, 가벼운 시작</h1>
+              <p className="eyebrow">{siteContent.heroEyebrow}</p>
+              <h1>{siteContent.heroTitle}</h1>
+              <p>{siteContent.heroDescription}</p>
               <div className="hero-rating">
                 <strong>{Number(reviewSummary.averageRating || 0).toFixed(1)}</strong>
                 <span>고객 평점</span>
@@ -885,8 +1237,9 @@ function App() {
         {view === 'home' && (
           <section className="panel split">
             <div>
-              <p className="eyebrow">웰니스 스테이</p>
-              <h2>라본 바디 테라피</h2>
+              <p className="eyebrow">{siteContent.heroEyebrow}</p>
+              <h2>{siteContent.brandName}</h2>
+              <p>{siteContent.heroDescription}</p>
             </div>
             <div className="feature-grid">
               <article>
@@ -907,15 +1260,15 @@ function App() {
 
         {view === 'home' && (
           <section className="panel location-panel">
-            <div className="location-copy">
-              <p className="eyebrow">Location</p>
-              <h2>오시는 길</h2>
-              <p>차분한 테라피 시간으로 이어질 수 있도록 매장 위치를 한눈에 확인하실 수 있게 준비했습니다.</p>
+              <div className="location-copy">
+                <p className="eyebrow">Location</p>
+                <h2>오시는 길</h2>
+              <p>{siteContent.locationDescription}</p>
 
               <div className="location-detail">
-                <strong>{storeName}</strong>
-                <span>{storeAddress}</span>
-                {storePhone ? <span>예약 및 문의 {storePhone}</span> : null}
+                <strong>{siteContent.storeName}</strong>
+                <span>{siteContent.storeAddress}</span>
+                {siteContent.storePhone ? <span>예약 및 문의 {siteContent.storePhone}</span> : null}
               </div>
             </div>
 
@@ -928,8 +1281,8 @@ function App() {
                 />
               ) : (
                 <div className="map-placeholder">
-                  <strong>{storeName}</strong>
-                  <p>{storeAddress}</p>
+                  <strong>{siteContent.storeName}</strong>
+                  <p>{siteContent.storeAddress}</p>
                   <span>카카오 지도 퍼가기 키를 연결하면 실제 매장 지도가 이 영역에 표시됩니다.</span>
                 </div>
               )}
@@ -984,7 +1337,7 @@ function App() {
             <div className="card-grid">
               {staff.map((member) => (
                 <article className="soft-card staff-card" key={member.id}>
-                  <img src={asset(member.profilePicture) || heroImages[2]} alt={member.name} />
+                  <img src={asset(member.profilePicture) || fallbackHeroImage} alt={member.name} />
                   <h3>{member.name}</h3>
                   <p>차분한 응대와 안정적인 리듬으로 케어를 진행합니다.</p>
                 </article>
@@ -1267,176 +1620,293 @@ function App() {
         )}
 
         {view === 'admin-dashboard' && isAdmin && (
-          <section className="panel">
-            <div className="admin-toolbar">
-              {adminPages.map(([adminView, label]) => (
-                <button
-                  key={adminView}
-                  className={`button ${view === adminView ? '' : 'secondary'}`}
-                  type="button"
-                  onClick={() => jump(adminView)}
-                >
-                  {label}
-                </button>
-              ))}
+          <section className="panel admin-panel">
+            {renderAdminToolbar()}
+            <div className="admin-section-head">
+              <p className="eyebrow">Admin</p>
+              <h2>관리자 대시보드</h2>
+              <p>메인 화면, 예약, 회원, 코스, 스태프, 공지사항을 한 화면 스타일 안에서 관리합니다.</p>
+              {renderNotice(['admin-dashboard'])}
             </div>
             <div className="card-grid">
-              <article className="soft-card"><h3>{courses.length}</h3><p>운영 프로그램</p></article>
-              <article className="soft-card"><h3>{staff.length}</h3><p>스태프</p></article>
-              <article className="soft-card"><h3>{adminUsers.length}</h3><p>회원 수</p></article>
-              <article className="soft-card"><h3>{adminReservations.length}</h3><p>전체 예약</p></article>
+              <article className="soft-card admin-stat"><span>프로그램</span><h3>{courses.length}</h3><button className="button secondary" type="button" onClick={() => jump('admin-courses')}>관리</button></article>
+              <article className="soft-card admin-stat"><span>스태프</span><h3>{staff.length}</h3><button className="button secondary" type="button" onClick={() => jump('admin-staff')}>관리</button></article>
+              <article className="soft-card admin-stat"><span>회원</span><h3>{adminUsers.length}</h3><button className="button secondary" type="button" onClick={() => jump('admin-users')}>관리</button></article>
+              <article className="soft-card admin-stat"><span>예약</span><h3>{adminReservations.length}</h3><button className="button secondary" type="button" onClick={() => jump('admin-reservations')}>관리</button></article>
+            </div>
+          </section>
+        )}
+
+        {view === 'admin-content' && isAdmin && (
+          <section className="panel admin-panel">
+            {renderAdminToolbar()}
+            <div className="admin-section-head">
+              <p className="eyebrow">Main Screen</p>
+              <h2>메인 화면 관리</h2>
+              <p>첫 화면 사진, 제목, 소개 문구, 위치 안내 문구를 수정합니다.</p>
+              {renderNotice(['admin-content'])}
+            </div>
+            <div className="admin-layout">
+              <form className="form-card admin-form" onSubmit={submitSiteContent}>
+                <label><span>브랜드명</span><input name="brandName" value={siteContentForm.brandName} onChange={update(setSiteContentForm)} required /></label>
+                <label><span>메인 작은 문구</span><input name="heroEyebrow" value={siteContentForm.heroEyebrow} onChange={update(setSiteContentForm)} required /></label>
+                <label><span>메인 제목</span><input name="heroTitle" value={siteContentForm.heroTitle} onChange={update(setSiteContentForm)} required /></label>
+                <label><span>메인 설명</span><textarea name="heroDescription" value={siteContentForm.heroDescription} onChange={update(setSiteContentForm)} rows="4" required /></label>
+                <label><span>메인 사진</span><input type="file" accept="image/*" onChange={(event) => setSiteHeroImageFile(event.target.files?.[0] || null)} /></label>
+                <div className="two-column">
+                  <label><span>매장명</span><input name="storeName" value={siteContentForm.storeName} onChange={update(setSiteContentForm)} required /></label>
+                  <label><span>전화번호</span><input name="storePhone" value={siteContentForm.storePhone} onChange={update(setSiteContentForm)} /></label>
+                </div>
+                <label><span>주소 안내</span><textarea name="storeAddress" value={siteContentForm.storeAddress} onChange={update(setSiteContentForm)} rows="3" required /></label>
+                <label><span>오시는 길 설명</span><textarea name="locationDescription" value={siteContentForm.locationDescription} onChange={update(setSiteContentForm)} rows="3" required /></label>
+                <button className="button" type="submit">메인 화면 저장</button>
+              </form>
+
+              <article className="list-card admin-preview">
+                <img src={heroImage} alt="현재 메인 사진" />
+                <p className="eyebrow">{siteContentForm.heroEyebrow}</p>
+                <h3>{siteContentForm.heroTitle}</h3>
+                <p>{siteContentForm.heroDescription}</p>
+                <div className="readonly-box">{siteContentForm.storeName} / {siteContentForm.storeAddress}</div>
+              </article>
             </div>
           </section>
         )}
 
         {view === 'admin-users' && isAdmin && (
-          <section className="panel">
-            <div className="admin-toolbar">
-              {adminPages.map(([adminView, label]) => (
-                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
-              ))}
+          <section className="panel admin-panel">
+            {renderAdminToolbar()}
+            <div className="admin-section-head">
+              <p className="eyebrow">Members</p>
+              <h2>회원 관리</h2>
+              <p>회원 정보, 권한, 패키지 횟수, 관리자 메모를 수정합니다.</p>
+              {renderNotice(['admin-users'])}
             </div>
-            <div className="list-grid">
-              {adminUsers.map((user) => (
-                <article className="list-card" key={user.userId}>
-                  <div className="list-head">
-                    <h3>{user.name} ({user.userId})</h3>
-                    <span>{user.role}</span>
-                  </div>
-                  <p>{user.email} / {user.phoneNumber}</p>
-                  <div className="button-row">
-                    <a className="button secondary" href={`/admin/userdetails?userId=${encodeURIComponent(user.userId)}`}>수정</a>
-                  </div>
-                </article>
-              ))}
+            <div className="admin-layout">
+              <form className="form-card admin-form" onSubmit={submitAdminUser}>
+                <h3>{editingUserId ? `${editingUserId} 수정` : '회원을 선택해 주세요'}</h3>
+                <label><span>이름</span><input name="name" value={adminUserForm.name} onChange={update(setAdminUserForm)} disabled={!editingUserId} required /></label>
+                <label><span>이메일</span><input name="email" type="email" value={adminUserForm.email} onChange={update(setAdminUserForm)} disabled={!editingUserId} required /></label>
+                <label><span>전화번호</span><input name="phoneNumber" value={adminUserForm.phoneNumber} onChange={(event) => setAdminUserForm((prev) => ({ ...prev, phoneNumber: formatPhoneNumber(event.target.value) }))} disabled={!editingUserId} required /></label>
+                <div className="two-column">
+                  <label><span>권한</span><select name="role" value={adminUserForm.role} onChange={update(setAdminUserForm)} disabled={!editingUserId}><option value="USER">USER</option><option value="ADMIN">ADMIN</option></select></label>
+                  <label><span>패키지 횟수</span><input type="number" name="packageCount" min="0" value={adminUserForm.packageCount} onChange={update(setAdminUserForm)} disabled={!editingUserId} /></label>
+                </div>
+                <div className="two-column">
+                  <label><span>성별</span><input name="gender" value={adminUserForm.gender} onChange={update(setAdminUserForm)} disabled={!editingUserId} /></label>
+                  <label><span>생년월일</span><input type="date" name="birthdate" value={adminUserForm.birthdate || ''} onChange={update(setAdminUserForm)} disabled={!editingUserId} /></label>
+                </div>
+                <label className="consent-row"><input type="checkbox" name="maritalStatus" checked={adminUserForm.maritalStatus} onChange={update(setAdminUserForm)} disabled={!editingUserId} /><span>기혼</span></label>
+                <label><span>관리자 메모</span><textarea name="memo" value={adminUserForm.memo} onChange={update(setAdminUserForm)} rows="5" disabled={!editingUserId} /></label>
+                <div className="button-row">
+                  <button className="button" type="submit" disabled={!editingUserId}>회원 저장</button>
+                  {editingUserId && <button className="button secondary" type="button" onClick={resetAdminUserForm}>취소</button>}
+                </div>
+              </form>
+
+              <div className="list-grid">
+                {adminUsers.map((user) => (
+                  <article className="list-card" key={user.userId}>
+                    <div className="list-head">
+                      <h3>{user.name} ({user.userId})</h3>
+                      <span>{normalizeRole(user.role)}</span>
+                    </div>
+                    <p>{user.email} / {formatPhoneNumber(user.phoneNumber)}</p>
+                    <p>패키지 {user.packageCount || 0}회</p>
+                    {user.memo ? <p>{user.memo}</p> : null}
+                    <div className="button-row">
+                      <button className="button secondary" type="button" onClick={() => startEditUser(user)}>수정</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
         {view === 'admin-reservations' && isAdmin && (
-          <section className="panel">
-            <div className="admin-toolbar">
-              {adminPages.map(([adminView, label]) => (
-                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
-              ))}
+          <section className="panel admin-panel">
+            {renderAdminToolbar()}
+            <div className="admin-section-head">
+              <p className="eyebrow">Reservations</p>
+              <h2>예약 관리</h2>
+              <p>예약 시간, 코스, 상태를 수정하고 필요 없는 예약을 삭제합니다.</p>
+              {renderNotice(['admin-reservations'])}
             </div>
-            <div className="list-grid">
-              {adminReservations.map((reservation) => (
-                <article className="list-card" key={reservation.id}>
-                  <div className="list-head">
-                    <h3>{reservation.userId || reservation.name || '비회원 예약'}</h3>
-                    <span>{reservation.status || '예약 완료'}</span>
-                  </div>
-                  <p>{formatDate(reservation.reservationDateTime)}</p>
-                  <div className="button-row">
-                    <a className="button secondary" href={`/reservations/admin/${reservation.id}/edit`}>수정</a>
-                  </div>
-                </article>
-              ))}
+            <div className="admin-layout">
+              <form className="form-card admin-form" onSubmit={submitAdminReservation}>
+                <h3>{editingReservationId ? '예약 수정' : '예약을 선택해 주세요'}</h3>
+                <label><span>코스</span><select name="courseId" value={adminReservationForm.courseId} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} required><option value="">코스 선택</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
+                <label><span>예약 일시</span><input type="datetime-local" name="reservationDateTime" value={adminReservationForm.reservationDateTime} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} required /></label>
+                <label><span>상태</span><select name="status" value={adminReservationForm.status} onChange={update(setAdminReservationForm)} disabled={!editingReservationId}><option value="PENDING">PENDING</option><option value="CONFIRMED">CONFIRMED</option><option value="CANCELLED">CANCELLED</option></select></label>
+                <div className="two-column">
+                  <label><span>비회원 이름</span><input name="name" value={adminReservationForm.name} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} /></label>
+                  <label><span>비회원 전화번호</span><input name="phoneNumber" value={adminReservationForm.phoneNumber} onChange={(event) => setAdminReservationForm((prev) => ({ ...prev, phoneNumber: formatPhoneNumber(event.target.value) }))} disabled={!editingReservationId} /></label>
+                </div>
+                <div className="button-row">
+                  <button className="button" type="submit" disabled={!editingReservationId}>예약 저장</button>
+                  {editingReservationId && <button className="button secondary" type="button" onClick={resetAdminReservationForm}>취소</button>}
+                </div>
+              </form>
+
+              <div className="list-grid">
+                {adminReservations.map((reservation) => (
+                  <article className="list-card" key={reservation.id}>
+                    <div className="list-head">
+                      <h3>{reservationOwnerLabel(reservation)}</h3>
+                      <span>{reservation.status || 'PENDING'}</span>
+                    </div>
+                    <p>{reservation.courseName || `코스 ID ${reservation.courseId || '-'}`}</p>
+                    <p>{formatDate(reservation.reservationDateTime)}</p>
+                    {reservation.phoneNumber ? <p>{formatPhoneNumber(reservation.phoneNumber)}</p> : null}
+                    <div className="button-row">
+                      <button className="button secondary" type="button" onClick={() => startEditReservation(reservation)}>수정</button>
+                      <button className="button secondary danger" type="button" onClick={() => deleteAdminReservation(reservation.id)}>삭제</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
         {view === 'admin-courses' && isAdmin && (
-          <section className="panel">
-            <div className="admin-toolbar">
-              {adminPages.map(([adminView, label]) => (
-                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
-              ))}
+          <section className="panel admin-panel">
+            {renderAdminToolbar()}
+            <div className="admin-section-head">
+              <p className="eyebrow">Programs</p>
+              <h2>프로그램 관리</h2>
+              <p>코스명, 담당 스태프, 시간, 가격을 등록하고 수정합니다.</p>
+              {renderNotice(['admin-courses'])}
             </div>
-            <div className="list-grid">
-              <article className="list-card">
-                <div className="button-row"><a className="button" href="/courses/new">새 프로그램</a></div>
-              </article>
-              {courses.map((course) => (
-                <article className="list-card" key={course.id}>
-                  <div className="list-head">
-                    <h3>{course.name}</h3>
-                    <span>{course.durationMinutes}분</span>
-                  </div>
-                  <p>회원가 {formatMoney(course.memberPrice)} / 비회원가 {formatMoney(course.nonMemberPrice)}</p>
-                  <div className="button-row">
-                    <a className="button secondary" href={`/courses/edit/${course.id}`}>수정</a>
-                  </div>
-                </article>
-              ))}
+            <div className="admin-layout">
+              <form className="form-card admin-form" onSubmit={submitAdminCourse}>
+                <h3>{editingCourseId ? '프로그램 수정' : '새 프로그램 등록'}</h3>
+                <label><span>코스명</span><input name="name" value={adminCourseForm.name} onChange={update(setAdminCourseForm)} required /></label>
+                <label><span>담당 스태프</span><select name="staffId" value={adminCourseForm.staffId} onChange={update(setAdminCourseForm)}><option value="">미지정</option>{staff.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
+                <div className="two-column">
+                  <label><span>소요 시간(분)</span><input type="number" min="1" name="durationMinutes" value={adminCourseForm.durationMinutes} onChange={update(setAdminCourseForm)} required /></label>
+                  <label><span>회원가</span><input type="number" min="0" step="100" name="memberPrice" value={adminCourseForm.memberPrice} onChange={update(setAdminCourseForm)} required /></label>
+                </div>
+                <label><span>비회원가</span><input type="number" min="0" step="100" name="nonMemberPrice" value={adminCourseForm.nonMemberPrice} onChange={update(setAdminCourseForm)} required /></label>
+                <div className="button-row">
+                  <button className="button" type="submit">{editingCourseId ? '코스 저장' : '코스 등록'}</button>
+                  {editingCourseId && <button className="button secondary" type="button" onClick={resetAdminCourseForm}>취소</button>}
+                </div>
+              </form>
+
+              <div className="list-grid">
+                {courses.map((course) => (
+                  <article className="list-card" key={course.id}>
+                    <div className="list-head">
+                      <h3>{course.name}</h3>
+                      <span>{course.durationMinutes}분</span>
+                    </div>
+                    <p>담당 {course.staff?.name || '미지정'}</p>
+                    <p>회원가 {formatMoney(course.memberPrice)} / 비회원가 {formatMoney(course.nonMemberPrice)}</p>
+                    <div className="button-row">
+                      <button className="button secondary" type="button" onClick={() => startEditCourse(course)}>수정</button>
+                      <button className="button secondary danger" type="button" onClick={() => deleteAdminCourse(course.id)}>삭제</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
         {view === 'admin-staff' && isAdmin && (
-          <section className="panel">
-            <div className="admin-toolbar">
-              {adminPages.map(([adminView, label]) => (
-                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
-              ))}
+          <section className="panel admin-panel">
+            {renderAdminToolbar()}
+            <div className="admin-section-head">
+              <p className="eyebrow">Staff</p>
+              <h2>스태프 관리</h2>
+              <p>스태프 이름과 프로필 이미지를 등록하고 수정합니다.</p>
+              {renderNotice(['admin-staff'])}
             </div>
-            <div className="list-grid">
-              <article className="list-card">
-                <div className="button-row"><a className="button" href="/staff/new">스태프 추가</a></div>
-              </article>
-              {staff.map((member) => (
-                <article className="list-card" key={member.id}>
-                  <div className="list-head"><h3>{member.name}</h3></div>
-                  <div className="button-row">
-                    <a className="button secondary" href={`/staff/edit/${member.id}`}>수정</a>
-                  </div>
-                </article>
-              ))}
+            <div className="admin-layout">
+              <form className="form-card admin-form" onSubmit={submitAdminStaff}>
+                <h3>{editingStaffId ? '스태프 수정' : '스태프 등록'}</h3>
+                <label><span>이름</span><input name="name" value={adminStaffForm.name} onChange={update(setAdminStaffForm)} required /></label>
+                <label><span>현재 이미지 경로</span><input name="profilePicture" value={adminStaffForm.profilePicture} onChange={update(setAdminStaffForm)} /></label>
+                <label><span>프로필 이미지</span><input type="file" accept="image/*" onChange={(event) => setAdminStaffForm((prev) => ({ ...prev, profileImage: event.target.files?.[0] || null }))} /></label>
+                <div className="button-row">
+                  <button className="button" type="submit">{editingStaffId ? '스태프 저장' : '스태프 등록'}</button>
+                  {editingStaffId && <button className="button secondary" type="button" onClick={resetAdminStaffForm}>취소</button>}
+                </div>
+              </form>
+
+              <div className="list-grid">
+                {staff.map((member) => (
+                  <article className="list-card staff-admin-card" key={member.id}>
+                    <img src={asset(member.profilePicture) || fallbackHeroImage} alt={member.name} />
+                    <div className="list-head"><h3>{member.name}</h3></div>
+                    <div className="button-row">
+                      <button className="button secondary" type="button" onClick={() => startEditStaff(member)}>수정</button>
+                      <button className="button secondary danger" type="button" onClick={() => deleteAdminStaff(member.id)}>삭제</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
         {view === 'admin-announcements' && isAdmin && (
-          <section className="panel">
-            <div className="admin-toolbar">
-              {adminPages.map(([adminView, label]) => (
-                <button key={adminView} className={`button ${view === adminView ? '' : 'secondary'}`} type="button" onClick={() => jump(adminView)}>{label}</button>
-              ))}
+          <section className="panel admin-panel">
+            {renderAdminToolbar()}
+            <div className="admin-section-head">
+              <p className="eyebrow">Notice</p>
+              <h2>공지 관리</h2>
+              <p>공지 제목과 본문을 작성하고, 첨부파일을 추가하거나 삭제합니다.</p>
+              {renderNotice(['admin-announcements'])}
             </div>
-            <div className="list-grid">
-              <article className="list-card">
-                <div className="button-row"><a className="button" href="/admin/announcements/new">공지 작성</a></div>
-              </article>
-              {announcements.map((announcement) => (
-                <article className="list-card" key={announcement.id}>
-                  <div className="list-head">
-                    <h3>{announcement.title}</h3>
-                    <span>{formatDate(announcement.createdAt)}</span>
+            <div className="admin-layout">
+              <form className="form-card admin-form" onSubmit={submitAdminAnnouncement}>
+                <h3>{editingAnnouncementId ? '공지 수정' : '공지 작성'}</h3>
+                <label><span>제목</span><input name="title" value={adminAnnouncementForm.title} onChange={update(setAdminAnnouncementForm)} required /></label>
+                <label><span>본문</span><textarea name="content" value={adminAnnouncementForm.content} onChange={update(setAdminAnnouncementForm)} rows="9" required /></label>
+                {editingAnnouncementId && (
+                  <div className="attachment-list">
+                    {(announcements.find((item) => item.id === editingAnnouncementId)?.attachmentPaths || []).map((path, index) => (
+                      <label className="consent-row" key={path}>
+                        <input
+                          type="checkbox"
+                          checked={adminAnnouncementForm.deletedAttachmentPaths.includes(path)}
+                          onChange={(event) => setAdminAnnouncementForm((prev) => ({
+                            ...prev,
+                            deletedAttachmentPaths: event.target.checked
+                              ? [...prev.deletedAttachmentPaths, path]
+                              : prev.deletedAttachmentPaths.filter((item) => item !== path),
+                          }))}
+                        />
+                        <span>{announcements.find((item) => item.id === editingAnnouncementId)?.originalAttachmentNames?.[index] || path} 삭제</span>
+                      </label>
+                    ))}
                   </div>
-                  <div className="button-row">
-                    <a className="button secondary" href={`/admin/announcements/${announcement.id}/edit`}>수정</a>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+                )}
+                <label><span>첨부파일 추가</span><input type="file" multiple onChange={(event) => setAdminAnnouncementForm((prev) => ({ ...prev, newAttachmentFiles: event.target.files || [] }))} /></label>
+                <div className="button-row">
+                  <button className="button" type="submit">{editingAnnouncementId ? '공지 저장' : '공지 등록'}</button>
+                  {editingAnnouncementId && <button className="button secondary" type="button" onClick={resetAdminAnnouncementForm}>취소</button>}
+                </div>
+              </form>
 
-        {false && view.startsWith('admin') && isAdmin && (
-          <section className="panel">
-            <div className="admin-toolbar">
-              {adminPages.map(([adminView, label]) => (
-                <button
-                  key={adminView}
-                  className={`button ${view === adminView ? '' : 'secondary'}`}
-                  type="button"
-                  onClick={() => jump(adminView)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="card-grid">
-              {adminPages.map(([adminView, label]) => (
-                <article className="soft-card admin-link" key={adminView}>
-                  <h3>{label}</h3>
-                  <p>{view === adminView ? '현재 작업 중인 관리자 화면입니다.' : '클릭하면 같은 관리자 영역 안에서 화면이 전환됩니다.'}</p>
-                  <button className="button secondary" type="button" onClick={() => jump(adminView)}>
-                    열기
-                  </button>
-                </article>
-              ))}
+              <div className="list-grid">
+                {announcements.map((announcement) => (
+                  <article className="list-card" key={announcement.id}>
+                    <div className="list-head">
+                      <h3>{announcement.title}</h3>
+                      <span>{formatDate(announcement.createdAt)}</span>
+                    </div>
+                    <div className="html-content" dangerouslySetInnerHTML={{ __html: announcement.content || '<p>등록된 내용이 없습니다.</p>' }} />
+                    <div className="button-row">
+                      <button className="button secondary" type="button" onClick={() => startEditAnnouncement(announcement)}>수정</button>
+                      <button className="button secondary danger" type="button" onClick={() => deleteAdminAnnouncement(announcement.id)}>삭제</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
           </section>
         )}

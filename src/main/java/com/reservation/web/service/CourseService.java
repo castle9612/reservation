@@ -5,6 +5,7 @@ import com.reservation.web.dto.StaffDTO;
 import com.reservation.web.entity.CourseEntity;
 import com.reservation.web.entity.StaffEntity;
 import com.reservation.web.repository.CourseRepository;
+import com.reservation.web.repository.ReservationRepository;
 import com.reservation.web.repository.StaffRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final StaffRepository staffRepository;
+    private final ReservationRepository reservationRepository;
 
     public CourseDTO convertEntityToDTO(CourseEntity courseEntity) {
         CourseDTO dto = new CourseDTO();
@@ -102,6 +104,7 @@ public class CourseService {
         if (!courseRepository.existsById(courseId)) {
             throw new IllegalArgumentException("삭제할 코스를 찾을 수 없습니다. ID: " + courseId);
         }
+        reservationRepository.deleteByCourse_Id(courseId);
         courseRepository.deleteById(courseId);
     }
 }

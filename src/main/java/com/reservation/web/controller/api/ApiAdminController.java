@@ -1,15 +1,37 @@
 package com.reservation.web.controller.api;
 
+import com.reservation.web.dto.AnnouncementDTO;
+import com.reservation.web.dto.CourseDTO;
+import com.reservation.web.dto.ReservationDTO;
+import com.reservation.web.dto.StaffDTO;
+import com.reservation.web.entity.AnnouncementEntity;
+import com.reservation.web.entity.CourseEntity;
 import com.reservation.web.entity.ReservationEntity;
+import com.reservation.web.entity.StaffEntity;
 import com.reservation.web.entity.UserEntity;
 import com.reservation.web.repository.ReservationRepository;
 import com.reservation.web.repository.UserRepository;
+import com.reservation.web.service.AnnouncementService;
+import com.reservation.web.service.CourseService;
+import com.reservation.web.service.ReservationService;
+import com.reservation.web.service.StaffService;
+import org.springframework.http.MediaType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +43,10 @@ public class ApiAdminController {
 
     private final UserRepository userRepository;
     private final ReservationRepository reservationRepository;
+    private final CourseService courseService;
+    private final StaffService staffService;
+    private final AnnouncementService announcementService;
+    private final ReservationService reservationService;
 
     @GetMapping("/users")
     public ApiResponse<List<Map<String, Object>>> users() {
@@ -33,30 +59,197 @@ public class ApiAdminController {
 
     @GetMapping("/reservations")
     public ApiResponse<List<Map<String, Object>>> reservations() {
-        List<Map<String, Object>> data = reservationRepository.findAll()
+        List<Map<String, Object>> data = reservationRepository.findAllWithCourse()
                 .stream()
                 .map(this::toReservationMap)
                 .toList();
         return ApiResponse.ok(data);
     }
 
+    @PostMapping("/courses")
+    public ApiResponse<CourseDTO> createCourse(@RequestBody CourseDTO courseDTO) {
+        CourseEntity saved = courseService.saveCourse(courseDTO);
+        return ApiResponse.ok(courseService.convertEntityToDTO(saved), "코스가 등록되었습니다.");
+    }
+
+    @PutMapping("/courses/{courseId}")
+    public ApiResponse<CourseDTO> updateCourse(@PathVariable Long courseId, @RequestBody CourseDTO courseDTO) {
+        CourseEntity updated = courseService.updateCourse(courseId, courseDTO);
+        return ApiResponse.ok(courseService.convertEntityToDTO(updated), "코스가 수정되었습니다.");
+    }
+
+    @DeleteMapping("/courses/{courseId}")
+    public ApiResponse<Void> deleteCourse(@PathVariable Long courseId) {
+        courseService.deleteCourse(courseId);
+        return ApiResponse.ok(null, "코스가 삭제되었습니다.");
+    }
+
+    @PostMapping(value = "/staff", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Map<String, Object>> createStaff(@RequestPart("staff") StaffDTO staffDTO,
+                                                        @RequestPart(name = "profileImage", required = false) MultipartFile profileImage) throws IOException {
+        StaffEntity saved = staffService.saveStaff(staffDTO, profileImage);
+        return ApiResponse.ok(toStaffMap(saved), "스태프가 등록되었습니다.");
+    }
+
+    @PutMapping(value = "/staff/{staffId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<Map<String, Object>> updateStaff(@PathVariable Long staffId,
+                                                        @RequestPart("staff") StaffDTO staffDTO,
+                                                        @RequestPart(name = "profileImage", required = false) MultipartFile profileImage) throws IOException {
+        staffDTO.setId(staffId);
+        StaffEntity saved = staffService.saveStaff(staffDTO, profileImage);
+        return ApiResponse.ok(toStaffMap(saved), "스태프가 수정되었습니다.");
+    }
+
+    @DeleteMapping("/staff/{staffId}")
+    public ApiResponse<Void> deleteStaff(@PathVariable Long staffId) {
+        staffService.deleteStaff(staffId);
+        return ApiResponse.ok(null, "스태프가 삭제되었습니다.");
+    }
+
+    @PostMapping(value = "/announcements", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<AnnouncementDTO> createAnnouncement(@RequestPart("announcement") AnnouncementDTO announcementDTO,
+                                                           @RequestPart(name = "newAttachmentFiles", required = false) MultipartFile[] newAttachmentFiles) throws IOException {
+        AnnouncementEntity announcement = new AnnouncementEntity();
+        announcement.setTitle(announcementDTO.getTitle());
+        announcement.setContent(announcementDTO.getContent());
+        AnnouncementEntity saved = announcementService.save(announcement, newAttachmentFiles);
+        return ApiResponse.ok(toAnnouncementDto(saved), "공지사항이 등록되었습니다.");
+    }
+
+    @PutMapping(value = "/announcements/{announcementId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResponse<AnnouncementDTO> updateAnnouncement(@PathVariable Long announcementId,
+                                                           @RequestPart("announcement") AnnouncementDTO announcementDTO,
+                                                           @RequestPart(name = "newAttachmentFiles", required = false) MultipartFile[] newAttachmentFiles,
+                                                           @RequestParam(name = "deletedAttachmentPaths", required = false) List<String> deletedAttachmentPaths) throws IOException {
+        AnnouncementEntity announcement = new AnnouncementEntity();
+        announcement.setTitle(announcementDTO.getTitle());
+        announcement.setContent(announcementDTO.getContent());
+        AnnouncementEntity saved = announcementService.update(announcementId, announcement, newAttachmentFiles, deletedAttachmentPaths);
+        return ApiResponse.ok(toAnnouncementDto(saved), "공지사항이 수정되었습니다.");
+    }
+
+    @DeleteMapping("/announcements/{announcementId}")
+    public ApiResponse<Void> deleteAnnouncement(@PathVariable Long announcementId) {
+        announcementService.delete(announcementId);
+        return ApiResponse.ok(null, "공지사항이 삭제되었습니다.");
+    }
+
+    @PutMapping("/reservations/{reservationId}")
+    public ApiResponse<Map<String, Object>> updateReservation(@PathVariable String reservationId,
+                                                              @RequestBody ReservationDTO reservationDTO) {
+        ReservationEntity updated = reservationService.updateReservation(reservationId, reservationDTO);
+        return ApiResponse.ok(toReservationMap(updated), "예약이 수정되었습니다.");
+    }
+
+    @DeleteMapping("/reservations/{reservationId}")
+    public ApiResponse<Void> deleteReservation(@PathVariable String reservationId) {
+        reservationService.deleteReservation(reservationId);
+        return ApiResponse.ok(null, "예약이 삭제되었습니다.");
+    }
+
+    @PutMapping("/users/{userId}")
+    public ApiResponse<Map<String, Object>> updateUser(@PathVariable String userId,
+                                                       @RequestBody Map<String, Object> payload) {
+        UserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+
+        user.setName(stringValue(payload.get("name"), user.getName()));
+        user.setEmail(stringValue(payload.get("email"), user.getEmail()));
+        user.setPhoneNumber(stringValue(payload.get("phoneNumber"), user.getPhoneNumber()));
+        user.setGender(stringValue(payload.get("gender"), user.getGender()));
+        user.setBirthdate(stringValue(payload.get("birthdate"), user.getBirthdate()));
+        user.setMemo(stringValue(payload.get("memo"), user.getMemo()));
+        user.setRole(normalizeRole(stringValue(payload.get("role"), user.getRole())));
+        user.setMaritalStatus(booleanValue(payload.get("maritalStatus"), user.isMaritalStatus()));
+        user.setPackageCount(intValue(payload.get("packageCount"), user.getPackageCount()));
+
+        return ApiResponse.ok(toUserMap(userRepository.save(user)), "회원 정보가 수정되었습니다.");
+    }
+
     private Map<String, Object> toUserMap(UserEntity user) {
-        return Map.of(
-                "userId", user.getUserId(),
-                "name", user.getName(),
-                "email", user.getEmail(),
-                "phoneNumber", user.getPhoneNumber(),
-                "role", user.getRole()
-        );
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("userId", user.getUserId());
+        item.put("name", user.getName());
+        item.put("email", user.getEmail());
+        item.put("phoneNumber", user.getPhoneNumber());
+        item.put("role", user.getRole());
+        item.put("gender", user.getGender());
+        item.put("birthdate", user.getBirthdate());
+        item.put("maritalStatus", user.isMaritalStatus());
+        item.put("packageCount", user.getPackageCount());
+        item.put("memo", user.getMemo());
+        return item;
     }
 
     private Map<String, Object> toReservationMap(ReservationEntity reservation) {
-        return Map.of(
-                "id", reservation.getId(),
-                "userId", reservation.getUserId() == null ? "" : reservation.getUserId(),
-                "name", reservation.getName() == null ? "" : reservation.getName(),
-                "status", reservation.getStatus() == null ? "" : reservation.getStatus(),
-                "reservationDateTime", reservation.getReservationDateTime()
-        );
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", reservation.getId());
+        item.put("userId", reservation.getUserId() == null ? "" : reservation.getUserId());
+        item.put("name", reservation.getName() == null ? "" : reservation.getName());
+        item.put("phoneNumber", reservation.getPhoneNumber() == null ? "" : reservation.getPhoneNumber());
+        item.put("status", reservation.getStatus() == null ? "" : reservation.getStatus());
+        item.put("reservationDateTime", reservation.getReservationDateTime());
+        item.put("courseId", reservation.getCourse() == null ? null : reservation.getCourse().getId());
+        item.put("courseName", reservation.getCourse() == null ? "" : reservation.getCourse().getName());
+        return item;
+    }
+
+    private Map<String, Object> toStaffMap(StaffEntity staff) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", staff.getId());
+        item.put("name", staff.getName());
+        item.put("profilePicture", staff.getProfilePicture());
+        return item;
+    }
+
+    private AnnouncementDTO toAnnouncementDto(AnnouncementEntity entity) {
+        AnnouncementDTO dto = new AnnouncementDTO();
+        dto.setId(entity.getId());
+        dto.setTitle(entity.getTitle());
+        dto.setContent(entity.getContent());
+        dto.setCreatedAt(entity.getCreatedAt());
+        dto.setAttachmentPaths(entity.getAttachmentPaths());
+        dto.setOriginalAttachmentNames(entity.getOriginalAttachmentNames());
+        return dto;
+    }
+
+    private String stringValue(Object value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        String trimmed = String.valueOf(value).trim();
+        return trimmed.isEmpty() ? fallback : trimmed;
+    }
+
+    private int intValue(Object value, int fallback) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private boolean booleanValue(Object value, boolean fallback) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value == null) {
+            return fallback;
+        }
+        return Boolean.parseBoolean(String.valueOf(value));
+    }
+
+    private String normalizeRole(String role) {
+        String normalized = role == null ? "USER" : role.trim().toUpperCase();
+        if (normalized.startsWith("ROLE_")) {
+            normalized = normalized.substring("ROLE_".length());
+        }
+        return "ADMIN".equals(normalized) ? "ADMIN" : "USER";
     }
 }
