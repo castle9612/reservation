@@ -209,6 +209,33 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const preventContextMenu = (event) => {
+      event.preventDefault();
+    };
+
+    const preventDevToolsShortcuts = (event) => {
+      const key = String(event.key || '').toLowerCase();
+      const blocked =
+        event.key === 'F12'
+        || ((event.ctrlKey || event.metaKey) && event.shiftKey && ['i', 'j', 'c'].includes(key))
+        || ((event.ctrlKey || event.metaKey) && key === 'u');
+
+      if (blocked) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+
+    window.addEventListener('contextmenu', preventContextMenu);
+    window.addEventListener('keydown', preventDevToolsShortcuts, true);
+
+    return () => {
+      window.removeEventListener('contextmenu', preventContextMenu);
+      window.removeEventListener('keydown', preventDevToolsShortcuts, true);
+    };
+  }, []);
+
+  useEffect(() => {
     const handlePopState = () => {
       setNotice(null);
       setView(resolveViewFromPath(window.location.pathname));
