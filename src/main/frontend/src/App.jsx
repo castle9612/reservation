@@ -104,10 +104,10 @@ const kakaoMapKey = import.meta.env.VITE_KAKAO_MAP_KEY || '2acjrw73oay7';
 const kakaoMapContainerId = `daumRoughmapContainer${kakaoMapTimestamp}`;
 
 function HtmlContent({ html }) {
-  function replaceMissingImage(event) {
-    const image = event.target;
-    if (image?.tagName !== 'IMG' || image.dataset.missingHandled === 'true') return;
+  const contentRef = useRef(null);
 
+  function replaceMissingImage(image) {
+    if (!image || image.dataset.missingHandled === 'true') return;
     image.dataset.missingHandled = 'true';
     const message = document.createElement('div');
     message.className = 'missing-image';
@@ -115,10 +115,27 @@ function HtmlContent({ html }) {
     image.replaceWith(message);
   }
 
+  useEffect(() => {
+    const container = contentRef.current;
+    if (!container) return undefined;
+
+    const images = Array.from(container.querySelectorAll('img'));
+    const listeners = images.map((image) => {
+      const handleError = () => replaceMissingImage(image);
+      image.addEventListener('error', handleError);
+      if (image.complete && image.naturalWidth === 0) {
+        replaceMissingImage(image);
+      }
+      return () => image.removeEventListener('error', handleError);
+    });
+
+    return () => listeners.forEach((remove) => remove());
+  }, [html]);
+
   return (
     <div
+      ref={contentRef}
       className="html-content"
-      onErrorCapture={replaceMissingImage}
       dangerouslySetInnerHTML={{ __html: html || '<p>등록된 내용이 없습니다.</p>' }}
     />
   );
