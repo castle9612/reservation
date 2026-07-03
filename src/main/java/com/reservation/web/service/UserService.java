@@ -24,6 +24,7 @@ public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CouponService couponService;
 
     @Transactional
     public void signup(UserDTO userDTO) {
@@ -35,7 +36,8 @@ public class UserService implements UserDetailsService {
         userDTO.setPhoneNumber(normalizePhoneNumber(userDTO.getPhoneNumber()));
 
         UserEntity userEntity = UserEntity.toUserEntity(userDTO);
-        userRepository.save(userEntity);
+        UserEntity savedUser = userRepository.save(userEntity);
+        couponService.issueSignupCoupon(savedUser.getUserId());
     }
 
     @Override

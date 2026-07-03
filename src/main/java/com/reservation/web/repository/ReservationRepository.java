@@ -12,15 +12,17 @@ import java.util.List;
 
 @Repository
 public interface ReservationRepository extends JpaRepository<ReservationEntity, String> {
-    @Query("SELECT r FROM ReservationEntity r LEFT JOIN FETCH r.course")
+    @Query("SELECT r FROM ReservationEntity r LEFT JOIN FETCH r.course c LEFT JOIN FETCH c.staff LEFT JOIN FETCH r.staff")
     List<ReservationEntity> findAllWithCourse();
 
-    List<ReservationEntity> findByUserId(String userId);
+    @Query("SELECT r FROM ReservationEntity r LEFT JOIN FETCH r.course c LEFT JOIN FETCH c.staff LEFT JOIN FETCH r.staff WHERE r.userId = :userId")
+    List<ReservationEntity> findByUserId(@Param("userId") String userId);
     List<ReservationEntity> findByStatus(String status);
     List<ReservationEntity> findByReservationDateTimeBetween(LocalDateTime start, LocalDateTime end);
     List<ReservationEntity> findByReservationDateTimeBetweenAndStatusIn(LocalDateTime start, LocalDateTime end, Collection<String> statuses);
     List<ReservationEntity> findByPhoneNumberAndName(String phoneNumber, String name);
     List<ReservationEntity> findByCourse_Id(Long courseId);
+    List<ReservationEntity> findByStaff_Id(Long staffId);
     void deleteByCourse_Id(Long courseId);
     @Query("SELECT r.status, COUNT(r) FROM ReservationEntity r WHERE r.userId = :userId GROUP BY r.status")
     List<Object[]> countStatusesByUserId(@Param("userId") String userId);

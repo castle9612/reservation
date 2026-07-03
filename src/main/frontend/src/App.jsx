@@ -9,6 +9,7 @@ const adminPages = [
   ['admin-reservations', '예약 관리'],
   ['admin-courses', '프로그램 관리'],
   ['admin-staff', '스태프 관리'],
+  ['admin-coupons', '쿠폰/마일리지'],
   ['admin-announcements', '공지 관리'],
 ];
 
@@ -32,6 +33,7 @@ const viewPathMap = {
   'admin-reservations': '/admin/reservations',
   'admin-courses': '/admin/courses',
   'admin-staff': '/admin/staff',
+  'admin-coupons': '/admin/coupons',
   'admin-announcements': '/admin/announcements',
 };
 
@@ -60,10 +62,10 @@ const signupCheckInit = {
   userEmail: { status: 'idle', message: '' },
   phoneNumber: { status: 'idle', message: '' },
 };
-const guestInit = { courseId: '', reservationDateTime: '', name: '', phoneNumber: '' };
+const guestInit = { courseId: '', staffId: '', reservationDateTime: '', name: '', phoneNumber: '' };
 const guestSearchInit = { name: '', phoneNumber: '' };
-const memberInit = { courseId: '', reservationDateTime: '' };
-const myPageInit = { userId: '', userName: '', userEmail: '', phoneNumber: '', password: '', packageCount: 0, memo: '' };
+const memberInit = { courseId: '', staffId: '', couponId: '', reservationDateTime: '' };
+const myPageInit = { userId: '', userName: '', userEmail: '', phoneNumber: '', password: '', packageCount: 0, mileageBalance: 0, memo: '', coupons: [] };
 const reviewInit = { reviewerName: '', rating: 5, content: '', images: [] };
 const defaultSiteContent = {
   brandName: import.meta.env.VITE_STORE_NAME || '라본 바디 테라피',
@@ -76,11 +78,13 @@ const defaultSiteContent = {
   storePhone: import.meta.env.VITE_STORE_PHONE || '',
   locationDescription: '차분한 테라피 시간으로 이어질 수 있도록 매장 위치를 한눈에 확인하실 수 있게 준비했습니다.',
 };
-const courseFormInit = { name: '', staffId: '', durationMinutes: 60, memberPrice: 0, nonMemberPrice: 0 };
-const staffFormInit = { name: '', profilePicture: '', profileImage: null };
+const courseFormInit = { name: '', staffId: '', durationMinutes: 60 };
+const staffFormInit = { name: '', profilePicture: '', description: '', profileImage: null };
 const announcementFormInit = { title: '', content: '', newAttachmentFiles: [], deletedAttachmentPaths: [] };
-const reservationFormInit = { id: '', courseId: '', reservationDateTime: '', name: '', phoneNumber: '', status: 'PENDING' };
-const userFormInit = { userId: '', name: '', email: '', phoneNumber: '', role: 'USER', gender: '', birthdate: '', maritalStatus: false, packageCount: 0, memo: '' };
+const reservationFormInit = { id: '', courseId: '', staffId: '', reservationDateTime: '', name: '', phoneNumber: '', status: 'PENDING' };
+const userFormInit = { userId: '', name: '', email: '', phoneNumber: '', role: 'USER', gender: '', birthdate: '', maritalStatus: false, packageCount: 0, mileageBalance: 0, memo: '' };
+const couponFormInit = { id: '', userId: '', name: '', discountAmount: 5000, status: 'AVAILABLE', expiresAt: '' };
+const mileageSettingInit = { earningRatePercent: 0 };
 const reservationStatusOptions = [
   ['PENDING', '예약 대기'],
   ['CONFIRMED', '예약 확정'],
@@ -163,6 +167,10 @@ function App() {
   const [adminUsers, setAdminUsers] = useState([]);
   const [adminReservations, setAdminReservations] = useState([]);
   const [adminReservationPhoneSearch, setAdminReservationPhoneSearch] = useState('');
+  const [adminCoupons, setAdminCoupons] = useState([]);
+  const [mileageSetting, setMileageSetting] = useState(mileageSettingInit);
+  const [adminCouponForm, setAdminCouponForm] = useState(couponFormInit);
+  const [editingCouponId, setEditingCouponId] = useState(null);
   const [myPage, setMyPage] = useState(myPageInit);
   const [guestSearchForm, setGuestSearchForm] = useState(guestSearchInit);
   const [loginForm, setLoginForm] = useState(loginInit);
@@ -328,7 +336,7 @@ function App() {
       if (me?.authenticated) {
         const followUpTasks = [loadMyReservations(), loadMyPage()];
         if (me?.role === 'ROLE_ADMIN') {
-          followUpTasks.push(loadAdminUsers(), loadAdminReservations());
+          followUpTasks.push(loadAdminUsers(), loadAdminReservations(), loadAdminCoupons(), loadMileageSetting());
         }
         await Promise.all(followUpTasks);
       }
@@ -396,6 +404,14 @@ function App() {
 
   async function loadAdminReservations() {
     setAdminReservations((await api('/api/admin/reservations')) || []);
+  }
+
+  async function loadAdminCoupons() {
+    setAdminCoupons((await api('/api/admin/coupons')) || []);
+  }
+
+  async function loadMileageSetting() {
+    setMileageSetting((await api('/api/admin/mileage-setting')) || mileageSettingInit);
   }
 
   async function loadCourses() {
@@ -669,6 +685,25 @@ function App() {
     return reservation.contactPhoneNumber || reservation.phoneNumber || '';
   }
 
+  function couponStatusLabel(status) {
+    const normalized = String(status || 'AVAILABLE').toUpperCase();
+    if (normalized === 'USED') return '사용됨';
+    if (normalized === 'EXPIRED') return '만료';
+    return '사용 가능';
+  }
+
+  function toDateTimeLocal(value) {
+    if (!value) return '';
+    return String(value).slice(0, 16);
+  }
+
+  function selectedCourseStaffId(courseId) {
+    const course = courses.find((item) => String(item.id) === String(courseId));
+    return course?.staffId ? String(course.staffId) : '';
+  }
+
+  const availableCoupons = (myPage.coupons || []).filter((coupon) => String(coupon.status || '').toUpperCase() === 'AVAILABLE');
+
   async function submitLogin(event) {
     event.preventDefault();
     try {
@@ -691,7 +726,7 @@ function App() {
       followUpTasks.push(loadMyReservations());
       followUpTasks.push(loadMyPage());
       if (me?.role === 'ROLE_ADMIN') {
-        followUpTasks.push(loadAdminUsers(), loadAdminReservations());
+        followUpTasks.push(loadAdminUsers(), loadAdminReservations(), loadAdminCoupons(), loadMileageSetting());
       }
       setNotice({ type: 'success', text: '로그인되었습니다.' });
       jump('home');
@@ -786,6 +821,7 @@ function App() {
         body: JSON.stringify({
           ...guestForm,
           courseId: Number(guestForm.courseId),
+          staffId: guestForm.staffId ? Number(guestForm.staffId) : null,
           phoneNumber: guestForm.phoneNumber.replaceAll(/[^0-9]/g, ''),
         }),
       });
@@ -805,10 +841,15 @@ function App() {
         method: 'POST',
         useCsrf: true,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...memberForm, courseId: Number(memberForm.courseId) }),
+        body: JSON.stringify({
+          ...memberForm,
+          courseId: Number(memberForm.courseId),
+          staffId: memberForm.staffId ? Number(memberForm.staffId) : null,
+          couponId: memberForm.couponId ? Number(memberForm.couponId) : null,
+        }),
       });
       setMemberForm({ ...memberInit, reservationDateTime: nextSlot() });
-      await loadMyReservations();
+      await Promise.all([loadMyReservations(), loadMyPage()]);
       setNotice({ type: 'success', text: '회원 예약이 완료되었습니다.' });
       jump('my-reservations');
     } catch (error) {
@@ -926,8 +967,6 @@ function App() {
       name: course.name || '',
       staffId: course.staffId ? String(course.staffId) : '',
       durationMinutes: course.durationMinutes || 60,
-      memberPrice: course.memberPrice || 0,
-      nonMemberPrice: course.nonMemberPrice || 0,
     });
   }
 
@@ -938,8 +977,8 @@ function App() {
         ...adminCourseForm,
         staffId: adminCourseForm.staffId ? Number(adminCourseForm.staffId) : null,
         durationMinutes: Number(adminCourseForm.durationMinutes || 0),
-        memberPrice: Number(adminCourseForm.memberPrice || 0),
-        nonMemberPrice: Number(adminCourseForm.nonMemberPrice || 0),
+        memberPrice: 0,
+        nonMemberPrice: 0,
       };
       await api(editingCourseId ? `/api/admin/courses/${editingCourseId}` : '/api/admin/courses', {
         method: editingCourseId ? 'PUT' : 'POST',
@@ -967,6 +1006,21 @@ function App() {
     }
   }
 
+  async function moveAdminCourse(courseId, direction) {
+    try {
+      await api(`/api/admin/courses/${courseId}/move`, {
+        method: 'PUT',
+        useCsrf: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction }),
+      });
+      await loadCourses();
+      setNotice({ type: 'success', text: '프로그램 순서가 변경되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '프로그램 순서 변경에 실패했습니다.' });
+    }
+  }
+
   function resetAdminStaffForm() {
     setEditingStaffId(null);
     setAdminStaffForm(staffFormInit);
@@ -974,7 +1028,7 @@ function App() {
 
   function startEditStaff(member) {
     setEditingStaffId(member.id);
-    setAdminStaffForm({ name: member.name || '', profilePicture: member.profilePicture || '', profileImage: null });
+    setAdminStaffForm({ name: member.name || '', profilePicture: member.profilePicture || '', description: member.description || '', profileImage: null });
   }
 
   async function submitAdminStaff(event) {
@@ -985,6 +1039,7 @@ function App() {
         id: editingStaffId,
         name: adminStaffForm.name,
         profilePicture: adminStaffForm.profilePicture,
+        description: adminStaffForm.description,
       });
       if (adminStaffForm.profileImage) formData.append('profileImage', adminStaffForm.profileImage);
 
@@ -1096,6 +1151,7 @@ function App() {
     setAdminReservationForm({
       id: reservation.id,
       courseId: reservation.courseId ? String(reservation.courseId) : '',
+      staffId: reservation.staffId ? String(reservation.staffId) : '',
       reservationDateTime: toDateTimeInputValue(reservation.reservationDateTime),
       name: reservation.name || '',
       phoneNumber: formatPhoneNumber(reservation.phoneNumber || ''),
@@ -1116,6 +1172,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           courseId: adminReservationForm.courseId ? Number(adminReservationForm.courseId) : null,
+          staffId: adminReservationForm.staffId ? Number(adminReservationForm.staffId) : null,
           reservationDateTime: adminReservationForm.reservationDateTime,
           name: adminReservationForm.name,
           phoneNumber: normalizePhoneNumber(adminReservationForm.phoneNumber),
@@ -1159,6 +1216,7 @@ function App() {
       birthdate: user.birthdate || '',
       maritalStatus: Boolean(user.maritalStatus),
       packageCount: user.packageCount || 0,
+      mileageBalance: user.mileageBalance || 0,
       memo: user.memo || '',
     });
   }
@@ -1178,6 +1236,7 @@ function App() {
           ...adminUserForm,
           phoneNumber: normalizePhoneNumber(adminUserForm.phoneNumber),
           packageCount: Number(adminUserForm.packageCount || 0),
+          mileageBalance: Number(adminUserForm.mileageBalance || 0),
           role: normalizeRole(adminUserForm.role),
         }),
       });
@@ -1201,6 +1260,72 @@ function App() {
     }
   }
 
+  function resetAdminCouponForm() {
+    setEditingCouponId(null);
+    setAdminCouponForm(couponFormInit);
+  }
+
+  function startEditCoupon(coupon) {
+    setEditingCouponId(coupon.id);
+    setAdminCouponForm({
+      id: coupon.id || '',
+      userId: coupon.userId || '',
+      name: coupon.name || '',
+      discountAmount: coupon.discountAmount || 0,
+      status: coupon.status || 'AVAILABLE',
+      expiresAt: toDateTimeLocal(coupon.expiresAt),
+    });
+  }
+
+  async function submitMileageSetting(event) {
+    event.preventDefault();
+    try {
+      const saved = await api('/api/admin/mileage-setting', {
+        method: 'PUT',
+        useCsrf: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ earningRatePercent: Number(mileageSetting.earningRatePercent || 0) }),
+      });
+      setMileageSetting(saved || mileageSettingInit);
+      setNotice({ type: 'success', text: '마일리지 적립률이 저장되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '마일리지 설정 저장에 실패했습니다.' });
+    }
+  }
+
+  async function submitAdminCoupon(event) {
+    event.preventDefault();
+    try {
+      await api(editingCouponId ? `/api/admin/coupons/${editingCouponId}` : '/api/admin/coupons', {
+        method: editingCouponId ? 'PUT' : 'POST',
+        useCsrf: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...adminCouponForm,
+          discountAmount: Number(adminCouponForm.discountAmount || 0),
+          expiresAt: adminCouponForm.expiresAt || null,
+        }),
+      });
+      await Promise.all([loadAdminCoupons(), loadMyPage()]);
+      resetAdminCouponForm();
+      setNotice({ type: 'success', text: editingCouponId ? '쿠폰이 수정되었습니다.' : '쿠폰이 발급되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '쿠폰 저장에 실패했습니다.' });
+    }
+  }
+
+  async function deleteAdminCoupon(couponId) {
+    if (!window.confirm('이 쿠폰을 삭제하시겠습니까?')) return;
+    try {
+      await api(`/api/admin/coupons/${couponId}`, { method: 'DELETE', useCsrf: true });
+      await Promise.all([loadAdminCoupons(), loadMyPage()]);
+      if (editingCouponId === couponId) resetAdminCouponForm();
+      setNotice({ type: 'success', text: '쿠폰이 삭제되었습니다.' });
+    } catch (error) {
+      setNotice({ type: 'error', text: error.message || '쿠폰 삭제에 실패했습니다.' });
+    }
+  }
+
   async function logout() {
     try {
       await api('/api/auth/logout', { method: 'POST', useCsrf: true });
@@ -1209,6 +1334,10 @@ function App() {
       setMyReservations([]);
       setAdminUsers([]);
       setAdminReservations([]);
+      setAdminCoupons([]);
+      setMileageSetting(mileageSettingInit);
+      setAdminCouponForm(couponFormInit);
+      setEditingCouponId(null);
       setNotice({ type: 'success', text: '로그아웃되었습니다.' });
       jump('home');
       await fetchCsrf();
@@ -1412,14 +1541,14 @@ function App() {
                 <article className="soft-card" key={course.id}>
                   <h3>{course.name}</h3>
                   <p>{course.durationMinutes}분 코스</p>
-                  <p>회원가 {formatMoney(course.memberPrice)}</p>
-                  <p>비회원가 {formatMoney(course.nonMemberPrice)}</p>
+                  <p>담당 {course.staff?.name || '방문 시 배정'}</p>
                   <button
                     className="button secondary"
                     onClick={() => {
                       const slot = nextSlot();
-                      setGuestForm((prev) => ({ ...prev, courseId: String(course.id), reservationDateTime: slot }));
-                      setMemberForm((prev) => ({ ...prev, courseId: String(course.id), reservationDateTime: slot }));
+                      const staffId = course.staffId ? String(course.staffId) : '';
+                      setGuestForm((prev) => ({ ...prev, courseId: String(course.id), staffId, reservationDateTime: slot }));
+                      setMemberForm((prev) => ({ ...prev, courseId: String(course.id), staffId, reservationDateTime: slot }));
                       jump(auth.authenticated ? 'member-booking' : 'guest-booking');
                     }}
                   >
@@ -1458,12 +1587,14 @@ function App() {
 
         {view === 'staff' && (
           <section className="panel">
-            <div className="card-grid">
+            <div className="staff-list">
               {staff.map((member) => (
                 <article className="soft-card staff-card" key={member.id}>
                   <img src={asset(member.profilePicture) || fallbackHeroImage} alt={member.name} />
-                  <h3>{member.name}</h3>
-                  <p>차분한 응대와 안정적인 리듬으로 케어를 진행합니다.</p>
+                  <div>
+                    <h3>{member.name}</h3>
+                    <p>{member.description || '차분한 응대와 안정적인 리듬으로 케어를 진행합니다.'}</p>
+                  </div>
                 </article>
               ))}
             </div>
@@ -1554,7 +1685,8 @@ function App() {
           <section className="panel form-panel">
             <form className="form-card" onSubmit={submitGuestReservation}>
               <h2>비회원 전용 예약</h2>
-              <label><span>코스</span><select name="courseId" value={guestForm.courseId} onChange={update(setGuestForm)} required><option value="">코스를 선택해 주세요</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
+              <label><span>코스</span><select name="courseId" value={guestForm.courseId} onChange={(event) => setGuestForm((prev) => ({ ...prev, courseId: event.target.value, staffId: selectedCourseStaffId(event.target.value) }))} required><option value="">코스를 선택해 주세요</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
+              <label><span>스태프</span><select name="staffId" value={guestForm.staffId} onChange={update(setGuestForm)} required><option value="">스태프를 선택해 주세요</option>{staff.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
               <label><span>예약 일시</span><input type="datetime-local" name="reservationDateTime" value={guestForm.reservationDateTime} onChange={update(setGuestForm)} required /></label>
               <label><span>이름</span><input name="name" value={guestForm.name} onChange={update(setGuestForm)} required /></label>
               <label><span>전화번호</span><input name="phoneNumber" value={guestForm.phoneNumber} onChange={update(setGuestForm)} required /></label>
@@ -1589,7 +1721,7 @@ function App() {
                     <h3>{item.name || '비회원 예약'}</h3>
                     <span>{formatDate(item.reservationDateTime)}</span>
                   </div>
-                  <p>코스 ID {item.courseId} / {statusLabel(item.status)}</p>
+                  <p>코스 ID {item.courseId} / {item.staffName || '스태프 미지정'} / {statusLabel(item.status)}</p>
                 </article>
               ))}
             </div>
@@ -1600,8 +1732,10 @@ function App() {
           <section className="panel form-panel">
             <form className="form-card" onSubmit={submitMemberReservation}>
               <h2>회원 전용 예약</h2>
-              <label><span>코스</span><select name="courseId" value={memberForm.courseId} onChange={update(setMemberForm)} required><option value="">코스를 선택해 주세요</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
+              <label><span>코스</span><select name="courseId" value={memberForm.courseId} onChange={(event) => setMemberForm((prev) => ({ ...prev, courseId: event.target.value, staffId: selectedCourseStaffId(event.target.value) }))} required><option value="">코스를 선택해 주세요</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
+              <label><span>스태프</span><select name="staffId" value={memberForm.staffId} onChange={update(setMemberForm)} required><option value="">스태프를 선택해 주세요</option>{staff.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
               <label><span>예약 일시</span><input type="datetime-local" name="reservationDateTime" value={memberForm.reservationDateTime} onChange={update(setMemberForm)} required /></label>
+              <label><span>쿠폰</span><select name="couponId" value={memberForm.couponId} onChange={update(setMemberForm)}><option value="">사용 안 함</option>{availableCoupons.map((coupon) => <option key={coupon.id} value={coupon.id}>{coupon.name} {formatMoney(coupon.discountAmount)}</option>)}</select></label>
               <button className="button" type="submit">회원 예약하기</button>
               {renderNotice(['member-booking'])}
             </form>
@@ -1618,7 +1752,9 @@ function App() {
                     <h3>{myPage.userName || auth.userId}</h3>
                     <span>{formatDate(item.reservationDateTime)}</span>
                   </div>
-                  <p>코스 ID {item.courseId} / {statusLabel(item.status)}</p>
+                  <p>코스 ID {item.courseId} / {item.staffName || '스태프 미지정'} / {statusLabel(item.status)}</p>
+                  {item.couponName ? <p>사용 쿠폰 {item.couponName} {formatMoney(item.couponDiscountAmount)}</p> : null}
+                  {item.mileageEarned ? <p>적립 마일리지 {formatMoney(item.mileageEarned)}</p> : null}
                 </article>
               ))}
             </div>
@@ -1628,6 +1764,16 @@ function App() {
         {view === 'mypage' && (
           <section className="panel form-panel">
             <form className="form-card" onSubmit={submitMyPage}>
+              <div className="readonly-box">보유 마일리지 {formatMoney(myPage.mileageBalance || 0)}</div>
+              <div className="coupon-wallet">
+                <h3>내 쿠폰</h3>
+                {(myPage.coupons || []).length ? (myPage.coupons || []).map((coupon) => (
+                  <div className="coupon-row" key={coupon.id}>
+                    <strong>{coupon.name}</strong>
+                    <span>{formatMoney(coupon.discountAmount)} / {couponStatusLabel(coupon.status)}</span>
+                  </div>
+                )) : <p>보유 쿠폰이 없습니다.</p>}
+              </div>
               <label><span>아이디</span><input value={myPage.userId || ''} readOnly /></label>
               <label><span>이름</span><input name="userName" value={myPage.userName || ''} onChange={update(setMyPage)} required /></label>
               <label><span>이메일</span><input name="userEmail" value={myPage.userEmail || ''} onChange={update(setMyPage)} required /></label>
@@ -1757,6 +1903,7 @@ function App() {
               <article className="soft-card admin-stat"><span>스태프</span><h3>{staff.length}</h3><button className="button secondary" type="button" onClick={() => jump('admin-staff')}>관리</button></article>
               <article className="soft-card admin-stat"><span>회원</span><h3>{adminUsers.length}</h3><button className="button secondary" type="button" onClick={() => jump('admin-users')}>관리</button></article>
               <article className="soft-card admin-stat"><span>예약</span><h3>{adminReservations.length}</h3><button className="button secondary" type="button" onClick={() => jump('admin-reservations')}>관리</button></article>
+              <article className="soft-card admin-stat"><span>쿠폰</span><h3>{adminCoupons.length}</h3><button className="button secondary" type="button" onClick={() => jump('admin-coupons')}>관리</button></article>
             </div>
           </section>
         )}
@@ -1816,6 +1963,7 @@ function App() {
                   <label><span>권한</span><select name="role" value={adminUserForm.role} onChange={update(setAdminUserForm)} disabled={!editingUserId}><option value="USER">USER</option><option value="ADMIN">ADMIN</option></select></label>
                   <label><span>패키지 횟수</span><input type="number" name="packageCount" min="0" value={adminUserForm.packageCount} onChange={update(setAdminUserForm)} disabled={!editingUserId} /></label>
                 </div>
+                <label><span>마일리지</span><input type="number" name="mileageBalance" min="0" value={adminUserForm.mileageBalance} onChange={update(setAdminUserForm)} disabled={!editingUserId} /></label>
                 <div className="two-column">
                   <label><span>성별</span><input name="gender" value={adminUserForm.gender} onChange={update(setAdminUserForm)} disabled={!editingUserId} /></label>
                   <label><span>생년월일</span><input type="date" name="birthdate" value={adminUserForm.birthdate || ''} onChange={update(setAdminUserForm)} disabled={!editingUserId} /></label>
@@ -1836,7 +1984,7 @@ function App() {
                       <span>{normalizeRole(user.role)}</span>
                     </div>
                     <p>{user.email} / {formatPhoneNumber(user.phoneNumber)}</p>
-                    <p>패키지 {user.packageCount || 0}회</p>
+                    <p>패키지 {user.packageCount || 0}회 / 마일리지 {formatMoney(user.mileageBalance || 0)}</p>
                     <div className="status-counts">
                       {userStatusSummaryOptions.map(([status, label]) => (
                         <span key={`${user.userId}-${status}`}>{label} {Number(user.reservationStatusCounts?.[status] || 0)}</span>
@@ -1867,6 +2015,7 @@ function App() {
               <form className="form-card admin-form" onSubmit={submitAdminReservation}>
                 <h3>{editingReservationId ? '예약 수정' : '예약을 선택해 주세요'}</h3>
                 <label><span>코스</span><select name="courseId" value={adminReservationForm.courseId} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} required><option value="">코스 선택</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
+                <label><span>스태프</span><select name="staffId" value={adminReservationForm.staffId} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} required><option value="">스태프 선택</option>{staff.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
                 <label><span>예약 일시</span><input type="datetime-local" name="reservationDateTime" value={adminReservationForm.reservationDateTime} onChange={update(setAdminReservationForm)} disabled={!editingReservationId} required /></label>
                 <label>
                   <span>상태</span>
@@ -1910,7 +2059,10 @@ function App() {
                         <span>{reservation.statusLabel || statusLabel(reservation.status)}</span>
                       </div>
                       <p>{reservation.courseName || `코스 ID ${reservation.courseId || '-'}`}</p>
+                      <p>스태프 {reservation.staffName || '미지정'}</p>
                       <p>{formatDate(reservation.reservationDateTime)}</p>
+                      {reservation.couponName ? <p>쿠폰 {reservation.couponName} {formatMoney(reservation.couponDiscountAmount)}</p> : null}
+                      {reservation.mileageEarned ? <p>적립 마일리지 {formatMoney(reservation.mileageEarned)}</p> : null}
                       {reservationContactPhone(reservation) ? <p>{formatPhoneNumber(reservationContactPhone(reservation))}</p> : null}
                       <div className="button-row">
                         <button className="button secondary" type="button" onClick={() => startEditReservation(reservation)}>수정</button>
@@ -1932,7 +2084,7 @@ function App() {
             <div className="admin-section-head">
               <p className="eyebrow">Programs</p>
               <h2>프로그램 관리</h2>
-              <p>코스명, 담당 스태프, 시간, 가격을 등록하고 수정합니다.</p>
+              <p>코스명, 담당 스태프, 시간을 등록하고 프로그램 순서를 조정합니다.</p>
               {renderNotice(['admin-courses'])}
             </div>
             <div className="admin-layout">
@@ -1940,11 +2092,7 @@ function App() {
                 <h3>{editingCourseId ? '프로그램 수정' : '새 프로그램 등록'}</h3>
                 <label><span>코스명</span><input name="name" value={adminCourseForm.name} onChange={update(setAdminCourseForm)} required /></label>
                 <label><span>담당 스태프</span><select name="staffId" value={adminCourseForm.staffId} onChange={update(setAdminCourseForm)}><option value="">미지정</option>{staff.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
-                <div className="two-column">
-                  <label><span>소요 시간(분)</span><input type="number" min="1" name="durationMinutes" value={adminCourseForm.durationMinutes} onChange={update(setAdminCourseForm)} required /></label>
-                  <label><span>회원가</span><input type="number" min="0" step="100" name="memberPrice" value={adminCourseForm.memberPrice} onChange={update(setAdminCourseForm)} required /></label>
-                </div>
-                <label><span>비회원가</span><input type="number" min="0" step="100" name="nonMemberPrice" value={adminCourseForm.nonMemberPrice} onChange={update(setAdminCourseForm)} required /></label>
+                <label><span>소요 시간(분)</span><input type="number" min="1" name="durationMinutes" value={adminCourseForm.durationMinutes} onChange={update(setAdminCourseForm)} required /></label>
                 <div className="button-row">
                   <button className="button" type="submit">{editingCourseId ? '코스 저장' : '코스 등록'}</button>
                   {editingCourseId && <button className="button secondary" type="button" onClick={resetAdminCourseForm}>취소</button>}
@@ -1952,15 +2100,16 @@ function App() {
               </form>
 
               <div className="list-grid">
-                {courses.map((course) => (
+                {courses.map((course, index) => (
                   <article className="list-card" key={course.id}>
                     <div className="list-head">
                       <h3>{course.name}</h3>
                       <span>{course.durationMinutes}분</span>
                     </div>
                     <p>담당 {course.staff?.name || '미지정'}</p>
-                    <p>회원가 {formatMoney(course.memberPrice)} / 비회원가 {formatMoney(course.nonMemberPrice)}</p>
                     <div className="button-row">
+                      <button className="button secondary" type="button" onClick={() => moveAdminCourse(course.id, 'up')} disabled={index === 0}>위로</button>
+                      <button className="button secondary" type="button" onClick={() => moveAdminCourse(course.id, 'down')} disabled={index === courses.length - 1}>아래로</button>
                       <button className="button secondary" type="button" onClick={() => startEditCourse(course)}>수정</button>
                       <button className="button secondary danger" type="button" onClick={() => deleteAdminCourse(course.id)}>삭제</button>
                     </div>
@@ -1984,6 +2133,7 @@ function App() {
               <form className="form-card admin-form" onSubmit={submitAdminStaff}>
                 <h3>{editingStaffId ? '스태프 수정' : '스태프 등록'}</h3>
                 <label><span>이름</span><input name="name" value={adminStaffForm.name} onChange={update(setAdminStaffForm)} required /></label>
+                <label><span>설명</span><textarea name="description" value={adminStaffForm.description} onChange={update(setAdminStaffForm)} rows="5" /></label>
                 <label><span>현재 이미지 경로</span><input name="profilePicture" value={adminStaffForm.profilePicture} onChange={update(setAdminStaffForm)} /></label>
                 <label><span>프로필 이미지</span><input type="file" accept="image/*" onChange={(event) => setAdminStaffForm((prev) => ({ ...prev, profileImage: event.target.files?.[0] || null }))} /></label>
                 <div className="button-row">
@@ -1994,12 +2144,68 @@ function App() {
 
               <div className="list-grid">
                 {staff.map((member) => (
-                  <article className="list-card staff-admin-card" key={member.id}>
+                  <article className="list-card staff-card staff-admin-card" key={member.id}>
                     <img src={asset(member.profilePicture) || fallbackHeroImage} alt={member.name} />
-                    <div className="list-head"><h3>{member.name}</h3></div>
+                    <div>
+                      <div className="list-head"><h3>{member.name}</h3></div>
+                      <p>{member.description || '등록된 설명이 없습니다.'}</p>
+                      <div className="button-row">
+                        <button className="button secondary" type="button" onClick={() => startEditStaff(member)}>수정</button>
+                        <button className="button secondary danger" type="button" onClick={() => deleteAdminStaff(member.id)}>삭제</button>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {view === 'admin-coupons' && isAdmin && (
+          <section className="panel admin-panel">
+            {renderAdminToolbar()}
+            <div className="admin-section-head">
+              <p className="eyebrow">Benefits</p>
+              <h2>쿠폰/마일리지 관리</h2>
+              <p>마일리지 적립률을 정하고 회원별 쿠폰을 발급, 수정, 삭제합니다.</p>
+              {renderNotice(['admin-coupons'])}
+            </div>
+            <div className="admin-layout">
+              <div className="form-card admin-form">
+                <form className="form-card" onSubmit={submitMileageSetting}>
+                  <h3>마일리지 설정</h3>
+                  <label><span>예약 완료 시 적립률(%)</span><input type="number" min="0" max="100" step="0.1" value={mileageSetting.earningRatePercent || 0} onChange={(event) => setMileageSetting((prev) => ({ ...prev, earningRatePercent: event.target.value }))} /></label>
+                  <button className="button" type="submit">적립률 저장</button>
+                </form>
+
+                <form className="form-card" onSubmit={submitAdminCoupon}>
+                  <h3>{editingCouponId ? '쿠폰 수정' : '쿠폰 발급'}</h3>
+                  <label><span>회원</span><select name="userId" value={adminCouponForm.userId} onChange={update(setAdminCouponForm)} required><option value="">회원 선택</option>{adminUsers.map((user) => <option key={user.userId} value={user.userId}>{user.name} ({user.userId})</option>)}</select></label>
+                  <label><span>쿠폰명</span><input name="name" value={adminCouponForm.name} onChange={update(setAdminCouponForm)} required /></label>
+                  <label><span>할인 금액</span><input type="number" min="0" step="100" name="discountAmount" value={adminCouponForm.discountAmount} onChange={update(setAdminCouponForm)} required /></label>
+                  <div className="two-column">
+                    <label><span>상태</span><select name="status" value={adminCouponForm.status} onChange={update(setAdminCouponForm)}><option value="AVAILABLE">사용 가능</option><option value="USED">사용됨</option><option value="EXPIRED">만료</option></select></label>
+                    <label><span>만료일</span><input type="datetime-local" name="expiresAt" value={adminCouponForm.expiresAt} onChange={update(setAdminCouponForm)} /></label>
+                  </div>
+                  <div className="button-row">
+                    <button className="button" type="submit">{editingCouponId ? '쿠폰 저장' : '쿠폰 발급'}</button>
+                    {editingCouponId && <button className="button secondary" type="button" onClick={resetAdminCouponForm}>취소</button>}
+                  </div>
+                </form>
+              </div>
+
+              <div className="list-grid">
+                {adminCoupons.map((coupon) => (
+                  <article className="list-card" key={coupon.id}>
+                    <div className="list-head">
+                      <h3>{coupon.name}</h3>
+                      <span>{couponStatusLabel(coupon.status)}</span>
+                    </div>
+                    <p>{coupon.userId} / {formatMoney(coupon.discountAmount)}</p>
+                    {coupon.expiresAt ? <p>만료 {formatDate(coupon.expiresAt)}</p> : null}
                     <div className="button-row">
-                      <button className="button secondary" type="button" onClick={() => startEditStaff(member)}>수정</button>
-                      <button className="button secondary danger" type="button" onClick={() => deleteAdminStaff(member.id)}>삭제</button>
+                      <button className="button secondary" type="button" onClick={() => startEditCoupon(coupon)}>수정</button>
+                      <button className="button secondary danger" type="button" onClick={() => deleteAdminCoupon(coupon.id)}>삭제</button>
                     </div>
                   </article>
                 ))}

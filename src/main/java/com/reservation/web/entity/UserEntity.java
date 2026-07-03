@@ -63,6 +63,9 @@ public class UserEntity {
     @Column(name = "package_count", nullable = false)
     private int packageCount;
 
+    @Column(name = "mileage_balance")
+    private Integer mileageBalance = 0;
+
     @PrePersist
     protected void onCreate() {
         this.createdDate = LocalDateTime.now();

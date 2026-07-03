@@ -5,14 +5,18 @@ import com.reservation.web.dto.CourseDTO;
 import com.reservation.web.dto.ReservationDTO;
 import com.reservation.web.dto.StaffDTO;
 import com.reservation.web.entity.AnnouncementEntity;
+import com.reservation.web.entity.CouponEntity;
 import com.reservation.web.entity.CourseEntity;
+import com.reservation.web.entity.MileageSettingEntity;
 import com.reservation.web.entity.ReservationEntity;
 import com.reservation.web.entity.StaffEntity;
 import com.reservation.web.entity.UserEntity;
 import com.reservation.web.repository.ReservationRepository;
 import com.reservation.web.repository.UserRepository;
 import com.reservation.web.service.AnnouncementService;
+import com.reservation.web.service.CouponService;
 import com.reservation.web.service.CourseService;
+import com.reservation.web.service.MileageService;
 import com.reservation.web.service.ReservationService;
 import com.reservation.web.service.StaffService;
 import org.springframework.http.MediaType;
@@ -32,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +64,8 @@ public class ApiAdminController {
     private final StaffService staffService;
     private final AnnouncementService announcementService;
     private final ReservationService reservationService;
+    private final CouponService couponService;
+    private final MileageService mileageService;
 
     @GetMapping("/users")
     public ApiResponse<List<Map<String, Object>>> users() {
@@ -98,6 +105,12 @@ public class ApiAdminController {
     public ApiResponse<CourseDTO> updateCourse(@PathVariable Long courseId, @RequestBody CourseDTO courseDTO) {
         CourseEntity updated = courseService.updateCourse(courseId, courseDTO);
         return ApiResponse.ok(courseService.convertEntityToDTO(updated), "코스가 수정되었습니다.");
+    }
+
+    @PutMapping("/courses/{courseId}/move")
+    public ApiResponse<Void> moveCourse(@PathVariable Long courseId, @RequestBody Map<String, Object> payload) {
+        courseService.moveCourse(courseId, stringValue(payload.get("direction"), "up"));
+        return ApiResponse.ok(null, "프로그램 순서가 변경되었습니다.");
     }
 
     @DeleteMapping("/courses/{courseId}")
@@ -190,6 +203,7 @@ public class ApiAdminController {
         user.setRole(normalizeRole(stringValue(payload.get("role"), user.getRole())));
         user.setMaritalStatus(booleanValue(payload.get("maritalStatus"), user.isMaritalStatus()));
         user.setPackageCount(intValue(payload.get("packageCount"), user.getPackageCount()));
+        user.setMileageBalance(intValue(payload.get("mileageBalance"), user.getMileageBalance() == null ? 0 : user.getMileageBalance()));
 
         return ApiResponse.ok(toUserMap(userRepository.save(user)), "회원 정보가 수정되었습니다.");
     }
@@ -206,6 +220,53 @@ public class ApiAdminController {
         return ApiResponse.ok(null, "회원이 삭제되었습니다.");
     }
 
+    @GetMapping("/mileage-setting")
+    public ApiResponse<Map<String, Object>> mileageSetting() {
+        return ApiResponse.ok(toMileageSettingMap(mileageService.getSetting()));
+    }
+
+    @PutMapping("/mileage-setting")
+    public ApiResponse<Map<String, Object>> updateMileageSetting(@RequestBody Map<String, Object> payload) {
+        MileageSettingEntity setting = mileageService.updateRate(doubleValue(payload.get("earningRatePercent"), 0.0));
+        return ApiResponse.ok(toMileageSettingMap(setting), "마일리지 적립률이 저장되었습니다.");
+    }
+
+    @GetMapping("/coupons")
+    public ApiResponse<List<Map<String, Object>>> coupons() {
+        return ApiResponse.ok(couponService.findAll().stream().map(this::toCouponMap).toList());
+    }
+
+    @PostMapping("/coupons")
+    public ApiResponse<Map<String, Object>> createCoupon(@RequestBody Map<String, Object> payload) {
+        CouponEntity coupon = couponService.issueCoupon(
+                stringValue(payload.get("userId"), ""),
+                stringValue(payload.get("name"), "쿠폰"),
+                intValue(payload.get("discountAmount"), 0),
+                stringValue(payload.get("status"), "AVAILABLE"),
+                dateTimeValue(payload.get("expiresAt"))
+        );
+        return ApiResponse.ok(toCouponMap(coupon), "쿠폰이 발급되었습니다.");
+    }
+
+    @PutMapping("/coupons/{couponId}")
+    public ApiResponse<Map<String, Object>> updateCoupon(@PathVariable Long couponId, @RequestBody Map<String, Object> payload) {
+        CouponEntity coupon = couponService.updateCoupon(
+                couponId,
+                stringValue(payload.get("userId"), ""),
+                stringValue(payload.get("name"), "쿠폰"),
+                intValue(payload.get("discountAmount"), 0),
+                stringValue(payload.get("status"), "AVAILABLE"),
+                dateTimeValue(payload.get("expiresAt"))
+        );
+        return ApiResponse.ok(toCouponMap(coupon), "쿠폰이 수정되었습니다.");
+    }
+
+    @DeleteMapping("/coupons/{couponId}")
+    public ApiResponse<Void> deleteCoupon(@PathVariable Long couponId) {
+        couponService.deleteCoupon(couponId);
+        return ApiResponse.ok(null, "쿠폰이 삭제되었습니다.");
+    }
+
     private Map<String, Object> toUserMap(UserEntity user) {
         Map<String, Object> item = new LinkedHashMap<>();
         item.put("userId", user.getUserId());
@@ -217,6 +278,7 @@ public class ApiAdminController {
         item.put("birthdate", user.getBirthdate());
         item.put("maritalStatus", user.isMaritalStatus());
         item.put("packageCount", user.getPackageCount());
+        item.put("mileageBalance", user.getMileageBalance() == null ? 0 : user.getMileageBalance());
         item.put("memo", user.getMemo());
         item.put("reservationStatusCounts", reservationStatusCounts(user.getUserId()));
         return item;
@@ -249,6 +311,13 @@ public class ApiAdminController {
         item.put("reservationDateTime", reservation.getReservationDateTime());
         item.put("courseId", reservation.getCourse() == null ? null : reservation.getCourse().getId());
         item.put("courseName", reservation.getCourse() == null ? "" : reservation.getCourse().getName());
+        StaffEntity staff = reservation.getStaff() != null ? reservation.getStaff() : reservation.getCourse() == null ? null : reservation.getCourse().getStaff();
+        item.put("staffId", staff == null ? null : staff.getId());
+        item.put("staffName", staff == null ? "" : staff.getName());
+        item.put("couponId", reservation.getCouponId());
+        item.put("couponName", reservation.getCouponName() == null ? "" : reservation.getCouponName());
+        item.put("couponDiscountAmount", reservation.getCouponDiscountAmount() == null ? 0 : reservation.getCouponDiscountAmount());
+        item.put("mileageEarned", reservation.getMileageEarned() == null ? 0 : reservation.getMileageEarned());
         return item;
     }
 
@@ -257,6 +326,25 @@ public class ApiAdminController {
         item.put("id", staff.getId());
         item.put("name", staff.getName());
         item.put("profilePicture", staff.getProfilePicture());
+        item.put("description", staff.getDescription());
+        return item;
+    }
+
+    private Map<String, Object> toCouponMap(CouponEntity coupon) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", coupon.getId());
+        item.put("userId", coupon.getUserId());
+        item.put("name", coupon.getName());
+        item.put("discountAmount", coupon.getDiscountAmount());
+        item.put("status", coupon.getStatus());
+        item.put("expiresAt", coupon.getExpiresAt());
+        item.put("createdAt", coupon.getCreatedAt());
+        return item;
+    }
+
+    private Map<String, Object> toMileageSettingMap(MileageSettingEntity setting) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("earningRatePercent", setting.getEarningRatePercent() == null ? 0.0 : setting.getEarningRatePercent());
         return item;
     }
 
@@ -291,6 +379,27 @@ public class ApiAdminController {
         } catch (NumberFormatException e) {
             return fallback;
         }
+    }
+
+    private double doubleValue(Object value, double fallback) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private LocalDateTime dateTimeValue(Object value) {
+        if (value == null || String.valueOf(value).isBlank()) {
+            return null;
+        }
+        return LocalDateTime.parse(String.valueOf(value));
     }
 
     private boolean booleanValue(Object value, boolean fallback) {

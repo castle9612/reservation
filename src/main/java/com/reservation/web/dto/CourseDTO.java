@@ -16,5 +16,6 @@ public class CourseDTO {
     private int durationMinutes;
     private double memberPrice;
     private double nonMemberPrice;
+    private int displayOrder;
     private StaffDTO staff; // 추가: 담당 직원 정보 (이름 등)
 }

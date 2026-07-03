@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/admin")
 public class AdminDashboardController {
 
-    @GetMapping({"", "/", "/dashboard", "/content", "/reservations", "/courses", "/staff"})
+    @GetMapping({"", "/", "/dashboard", "/content", "/reservations", "/courses", "/staff", "/coupons"})
     @PreAuthorize("hasRole('ADMIN')")
     public String showAdminDashboard() {
         return "forward:/react-app/index.html";

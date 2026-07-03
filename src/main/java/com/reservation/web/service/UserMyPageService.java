@@ -1,8 +1,10 @@
 package com.reservation.web.service;
 
 import com.reservation.web.dto.UserMyPageDTO;
+import com.reservation.web.entity.CouponEntity;
 import com.reservation.web.entity.ReservationEntity;
 import com.reservation.web.entity.UserEntity;
+import com.reservation.web.repository.CouponRepository;
 import com.reservation.web.repository.ReservationRepository;
 import com.reservation.web.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,13 +20,16 @@ public class UserMyPageService {
     private final UserRepository userRepository;
     private final ReservationRepository reservationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CouponRepository couponRepository;
 
     public UserMyPageService(UserRepository userRepository,
                              ReservationRepository reservationRepository,
-                             PasswordEncoder passwordEncoder) {
+                             PasswordEncoder passwordEncoder,
+                             CouponRepository couponRepository) {
         this.userRepository = userRepository;
         this.reservationRepository = reservationRepository;
         this.passwordEncoder = passwordEncoder;
+        this.couponRepository = couponRepository;
     }
 
     public UserMyPageDTO getUserDetails(String userId) {
@@ -37,7 +42,11 @@ public class UserMyPageService {
         dto.setUserEmail(user.getEmail());
         dto.setPhoneNumber(user.getPhoneNumber());
         dto.setPackageCount(user.getPackageCount());
+        dto.setMileageBalance(user.getMileageBalance() == null ? 0 : user.getMileageBalance());
         dto.setMemo(user.getMemo());
+        dto.setCoupons(couponRepository.findByUserIdOrderByCreatedAtDesc(user.getUserId()).stream()
+                .map(this::toCouponSummary)
+                .toList());
         return dto;
     }
 
@@ -88,5 +97,15 @@ public class UserMyPageService {
 
     public UserMyPageDTO getUserDetailsById(String userId) {
         return getUserDetails(userId);
+    }
+
+    private UserMyPageDTO.CouponSummary toCouponSummary(CouponEntity coupon) {
+        UserMyPageDTO.CouponSummary summary = new UserMyPageDTO.CouponSummary();
+        summary.setId(coupon.getId());
+        summary.setName(coupon.getName());
+        summary.setDiscountAmount(coupon.getDiscountAmount());
+        summary.setStatus(coupon.getStatus());
+        summary.setExpiresAt(coupon.getExpiresAt());
+        return summary;
     }
 }

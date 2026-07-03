@@ -91,6 +91,7 @@ public class PublicApiController {
         item.put("id", dto.getId());
         item.put("name", dto.getName());
         item.put("profilePicture", dto.getProfilePicture());
+        item.put("description", dto.getDescription());
         return item;
     }
 }

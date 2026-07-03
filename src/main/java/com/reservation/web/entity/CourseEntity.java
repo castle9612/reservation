@@ -28,6 +28,8 @@ public class CourseEntity {
     @Column(nullable = false)
     private Integer durationMinutes;
 
+    private Integer displayOrder = 0;
+
     @Column(nullable = false)
     private Double memberPrice;
 
@@ -40,5 +42,6 @@ public class CourseEntity {
         this.durationMinutes = durationMinutes;
         this.memberPrice = memberPrice;
         this.nonMemberPrice = nonMemberPrice;
+        this.displayOrder = 0;
     }
 }

@@ -1,10 +1,13 @@
 package com.reservation.web.service;
 
 import com.reservation.web.dto.ReservationDTO;
+import com.reservation.web.entity.CouponEntity;
 import com.reservation.web.entity.CourseEntity;
 import com.reservation.web.entity.ReservationEntity;
+import com.reservation.web.entity.StaffEntity;
 import com.reservation.web.repository.CourseRepository;
 import com.reservation.web.repository.ReservationRepository;
+import com.reservation.web.repository.StaffRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,17 +22,28 @@ public class ReservationService {
 
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_CONFIRMED = "CONFIRMED";
+    private static final String STATUS_COMPLETED = "COMPLETED";
     private static final Set<String> ACTIVE_STATUSES = Set.of(STATUS_PENDING, STATUS_CONFIRMED);
 
     private final ReservationRepository reservationRepository;
     private final CourseRepository courseRepository;
+    private final StaffRepository staffRepository;
+    private final CouponService couponService;
+    private final MileageService mileageService;
 
     private final int maxReservationsPerUser = 2;
     private final int defaultBlockMinutes = 30;
 
-    public ReservationService(ReservationRepository reservationRepository, CourseRepository courseRepository) {
+    public ReservationService(ReservationRepository reservationRepository,
+                              CourseRepository courseRepository,
+                              StaffRepository staffRepository,
+                              CouponService couponService,
+                              MileageService mileageService) {
         this.reservationRepository = reservationRepository;
         this.courseRepository = courseRepository;
+        this.staffRepository = staffRepository;
+        this.couponService = couponService;
+        this.mileageService = mileageService;
     }
 
     @Transactional
@@ -37,9 +51,12 @@ public class ReservationService {
         validateReservationRequest(reservationDTO);
 
         CourseEntity course = getCourse(reservationDTO.getCourseId());
+        StaffEntity staff = resolveStaff(reservationDTO.getStaffId(), course);
+        CouponEntity coupon = null;
 
         if (reservationDTO.isMemberReservation()) {
             validateMemberReservationLimit(reservationDTO.getUserId());
+            coupon = couponService.useCoupon(reservationDTO.getCouponId(), reservationDTO.getUserId());
             reservationDTO.setName(null);
             reservationDTO.setPhoneNumber(null);
         } else {
@@ -47,7 +64,7 @@ public class ReservationService {
             reservationDTO.setUserId(null);
         }
 
-        if (!isTimeSlotAvailable(reservationDTO.getReservationDateTime(), course, null)) {
+        if (!isTimeSlotAvailable(reservationDTO.getReservationDateTime(), course, staff, null)) {
             throw new IllegalStateException("해당 시간에는 이미 예약이 있어 진행할 수 없습니다.");
         }
 
@@ -57,7 +74,13 @@ public class ReservationService {
         reservationEntity.setPhoneNumber(trimToNull(reservationDTO.getPhoneNumber()));
         reservationEntity.setReservationDateTime(reservationDTO.getReservationDateTime());
         reservationEntity.setCourse(course);
+        reservationEntity.setStaff(staff);
         reservationEntity.setStatus(defaultStatus(reservationDTO.getStatus()));
+        if (coupon != null) {
+            reservationEntity.setCouponId(coupon.getId());
+            reservationEntity.setCouponName(coupon.getName());
+            reservationEntity.setCouponDiscountAmount(coupon.getDiscountAmount());
+        }
 
         return reservationRepository.save(reservationEntity);
     }
@@ -75,18 +98,23 @@ public class ReservationService {
         if (updatedReservationDTO.getCourseId() != null) {
             targetCourse = getCourse(updatedReservationDTO.getCourseId());
         }
+        StaffEntity targetStaff = updatedReservationDTO.getStaffId() != null
+                ? resolveStaff(updatedReservationDTO.getStaffId(), targetCourse)
+                : resolveReservationStaff(existingReservation);
 
         LocalDateTime targetDateTime = updatedReservationDTO.getReservationDateTime() != null
                 ? updatedReservationDTO.getReservationDateTime()
                 : existingReservation.getReservationDateTime();
 
-        if (!isTimeSlotAvailable(targetDateTime, targetCourse, existingReservation.getId())) {
+        if (!isTimeSlotAvailable(targetDateTime, targetCourse, targetStaff, existingReservation.getId())) {
             throw new IllegalStateException("수정하려는 시간에는 이미 예약이 있어 진행할 수 없습니다.");
         }
 
         existingReservation.setReservationDateTime(targetDateTime);
         existingReservation.setCourse(targetCourse);
+        existingReservation.setStaff(targetStaff);
 
+        String previousStatus = existingReservation.getStatus();
         if (updatedReservationDTO.getStatus() != null && !updatedReservationDTO.getStatus().isBlank()) {
             existingReservation.setStatus(updatedReservationDTO.getStatus().trim().toUpperCase());
         }
@@ -104,6 +132,7 @@ public class ReservationService {
             }
         }
 
+        applyMileageIfCompleted(existingReservation, previousStatus);
         return reservationRepository.save(existingReservation);
     }
 
@@ -141,6 +170,10 @@ public class ReservationService {
     }
 
     public boolean isTimeSlotAvailable(LocalDateTime reservationDateTime, CourseEntity course, String excludeReservationId) {
+        return isTimeSlotAvailable(reservationDateTime, course, resolveStaff(null, course), excludeReservationId);
+    }
+
+    public boolean isTimeSlotAvailable(LocalDateTime reservationDateTime, CourseEntity course, StaffEntity staff, String excludeReservationId) {
         int newReservationDuration = resolveBlockMinutes(course);
         LocalDateTime newStart = reservationDateTime;
         LocalDateTime newEnd = reservationDateTime.plusMinutes(newReservationDuration);
@@ -153,6 +186,11 @@ public class ReservationService {
 
         for (ReservationEntity candidate : candidates) {
             if (excludeReservationId != null && excludeReservationId.equals(candidate.getId())) {
+                continue;
+            }
+
+            StaffEntity candidateStaff = resolveReservationStaff(candidate);
+            if (!sameStaff(staff, candidateStaff)) {
                 continue;
             }
 
@@ -194,10 +232,19 @@ public class ReservationService {
         if (entity.getCourse() != null) {
             dto.setCourseId(entity.getCourse().getId());
         }
+        StaffEntity staff = resolveReservationStaff(entity);
+        if (staff != null) {
+            dto.setStaffId(staff.getId());
+            dto.setStaffName(staff.getName());
+        }
         dto.setReservationDateTime(entity.getReservationDateTime());
         dto.setStatus(entity.getStatus());
         dto.setName(entity.getName());
         dto.setPhoneNumber(entity.getPhoneNumber());
+        dto.setCouponId(entity.getCouponId());
+        dto.setCouponName(entity.getCouponName());
+        dto.setCouponDiscountAmount(entity.getCouponDiscountAmount());
+        dto.setMileageEarned(entity.getMileageEarned());
         return dto;
     }
 
@@ -213,6 +260,51 @@ public class ReservationService {
     private CourseEntity getCourse(Long courseId) {
         return courseRepository.findById(courseId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 코스 ID입니다: " + courseId));
+    }
+
+    private StaffEntity resolveStaff(Long staffId, CourseEntity course) {
+        if (staffId != null) {
+            return staffRepository.findById(staffId)
+                    .orElseThrow(() -> new IllegalArgumentException("선택한 스태프를 찾을 수 없습니다: " + staffId));
+        }
+        return course == null ? null : course.getStaff();
+    }
+
+    private StaffEntity resolveReservationStaff(ReservationEntity reservation) {
+        if (reservation == null) {
+            return null;
+        }
+        if (reservation.getStaff() != null) {
+            return reservation.getStaff();
+        }
+        return reservation.getCourse() == null ? null : reservation.getCourse().getStaff();
+    }
+
+    private boolean sameStaff(StaffEntity first, StaffEntity second) {
+        if (first == null || second == null) {
+            return first == second;
+        }
+        return first.getId() != null && first.getId().equals(second.getId());
+    }
+
+    private void applyMileageIfCompleted(ReservationEntity reservation, String previousStatus) {
+        if (reservation.getUserId() == null || reservation.getUserId().isBlank()) {
+            return;
+        }
+        if (!STATUS_COMPLETED.equals(reservation.getStatus())) {
+            return;
+        }
+        if (STATUS_COMPLETED.equals(previousStatus) || (reservation.getMileageEarned() != null && reservation.getMileageEarned() > 0)) {
+            return;
+        }
+
+        int baseAmount = 0;
+        if (reservation.getCourse() != null && reservation.getCourse().getMemberPrice() != null) {
+            baseAmount = (int) Math.round(reservation.getCourse().getMemberPrice());
+        }
+        baseAmount = Math.max(0, baseAmount - Math.max(0, reservation.getCouponDiscountAmount() == null ? 0 : reservation.getCouponDiscountAmount()));
+        int earned = mileageService.earnMileage(reservation.getUserId(), baseAmount);
+        reservation.setMileageEarned(earned);
     }
 
     private void validateReservationRequest(ReservationDTO reservationDTO) {

@@ -4,6 +4,7 @@ import com.reservation.web.dto.StaffDTO;
 import com.reservation.web.entity.CourseEntity;
 import com.reservation.web.entity.StaffEntity;
 import com.reservation.web.repository.CourseRepository;
+import com.reservation.web.repository.ReservationRepository;
 import com.reservation.web.repository.StaffRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -24,13 +25,16 @@ import java.util.stream.Collectors;
 public class StaffService {
     private final StaffRepository staffRepository;
     private final CourseRepository courseRepository;
+    private final ReservationRepository reservationRepository;
     private final Path uploadRoot;
 
     public StaffService(StaffRepository staffRepository,
                         CourseRepository courseRepository,
+                        ReservationRepository reservationRepository,
                         @Value("${file.upload-dir}") String uploadDir) throws IOException {
         this.staffRepository = staffRepository;
         this.courseRepository = courseRepository;
+        this.reservationRepository = reservationRepository;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
         Files.createDirectories(this.uploadRoot);
     }
@@ -39,7 +43,8 @@ public class StaffService {
         return new StaffDTO(
                 staffEntity.getId(),
                 staffEntity.getName(),
-                staffEntity.getProfilePicture()
+                staffEntity.getProfilePicture(),
+                staffEntity.getDescription()
         );
     }
 
@@ -78,6 +83,7 @@ public class StaffService {
             staffEntity = new StaffEntity();
         }
         staffEntity.setName(staffDTO.getName());
+        staffEntity.setDescription(staffDTO.getDescription());
 
         if (profileImage != null && !profileImage.isEmpty()) {
             String storedFileName = storeProfileImage(profileImage);
@@ -97,6 +103,7 @@ public class StaffService {
         List<CourseEntity> assignedCourses = courseRepository.findByStaff_Id(id);
         assignedCourses.forEach(course -> course.setStaff(null));
         courseRepository.saveAll(assignedCourses);
+        reservationRepository.findByStaff_Id(id).forEach(reservation -> reservation.setStaff(null));
         staffRepository.deleteById(id);
     }
 

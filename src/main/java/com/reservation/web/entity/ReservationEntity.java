@@ -29,6 +29,10 @@ public class ReservationEntity {
     @JoinColumn(name = "course_id", nullable = false) // reservations 테이블의 course_id 컬럼을 참조하며, NOT NULL
     private CourseEntity course; // CourseEntity 객체 필드 추가
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_id")
+    private StaffEntity staff;
+
     // private Long courseId; 필드는 @ManyToOne 관계로 대체되었으므로 제거합니다.
 
     @Column(nullable = false) // 예약 시간 필수
@@ -40,6 +44,14 @@ public class ReservationEntity {
     private String name; // 비회원 예약일 경우
 
     private String phoneNumber; // 비회원 예약일 경우
+
+    private Long couponId;
+
+    private String couponName;
+
+    private Integer couponDiscountAmount = 0;
+
+    private Integer mileageEarned = 0;
 
     // 주의: ManyToOne 관계에서는 course 필드를 통해 course 정보를 접근해야 합니다.
     // 예: reservationEntity.getCourse().getId()

@@ -21,6 +21,8 @@ public class ReservationDTO {
     @NotNull(message = "코스는 필수입니다.")
     private Long courseId;
 
+    private Long staffId;
+
     @NotNull(message = "예약 희망 일시는 필수입니다.")
     @Future(message = "예약 희망 일시는 현재보다 이후여야 합니다.")
     private LocalDateTime reservationDateTime;
@@ -28,6 +30,11 @@ public class ReservationDTO {
     private String name;
     private String phoneNumber;
     private String status;
+    private String staffName;
+    private Long couponId;
+    private String couponName;
+    private Integer couponDiscountAmount;
+    private Integer mileageEarned;
 
     public boolean isMemberReservation() {
         return userId != null && !userId.trim().isEmpty();

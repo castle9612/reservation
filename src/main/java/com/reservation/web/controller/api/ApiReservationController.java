@@ -34,6 +34,8 @@ public class ApiReservationController {
         ReservationDTO dto = new ReservationDTO();
         dto.setUserId(currentUserId);
         dto.setCourseId(request.getCourseId());
+        dto.setStaffId(request.getStaffId());
+        dto.setCouponId(request.getCouponId());
         dto.setReservationDateTime(request.getReservationDateTime());
 
         reservationService.saveReservation(dto);
@@ -51,6 +53,7 @@ public class ApiReservationController {
 
         ReservationDTO dto = new ReservationDTO();
         dto.setCourseId(request.getCourseId());
+        dto.setStaffId(request.getStaffId());
         dto.setReservationDateTime(request.getReservationDateTime());
         dto.setName(request.getName().trim());
         dto.setPhoneNumber(request.getPhoneNumber().replaceAll("[^0-9]", ""));

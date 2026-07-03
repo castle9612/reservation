@@ -89,6 +89,7 @@ public class WebSecurityConfig {
                                 "/admin/reservations",
                                 "/admin/courses",
                                 "/admin/staff",
+                                "/admin/coupons",
                                 "/admin/announcements"
                         ).hasRole("ADMIN")
                         .requestMatchers(

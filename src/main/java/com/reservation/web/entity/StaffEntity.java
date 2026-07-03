@@ -25,6 +25,9 @@ public class StaffEntity {
     @Column // 프로필 사진 경로는 선택 사항일 수 있음
     private String profilePicture; // 사진 경로
 
+    @Column(length = 1000)
+    private String description;
+
     // Staff가 담당하는 Course 목록 (양방향 관계)
     @OneToMany(mappedBy = "staff", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     private List<CourseEntity> courses = new ArrayList<>();
@@ -33,6 +36,12 @@ public class StaffEntity {
     public StaffEntity(String name, String profilePicture) {
         this.name = name;
         this.profilePicture = profilePicture;
+    }
+
+    public StaffEntity(String name, String profilePicture, String description) {
+        this.name = name;
+        this.profilePicture = profilePicture;
+        this.description = description;
     }
 
     @Override

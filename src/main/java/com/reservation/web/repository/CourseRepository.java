@@ -11,11 +11,18 @@ import java.util.Optional;
 @Repository
 public interface CourseRepository extends JpaRepository<CourseEntity, Long> {
 
-    @Query("SELECT c FROM CourseEntity c LEFT JOIN FETCH c.staff")
+    @Query("SELECT c FROM CourseEntity c LEFT JOIN FETCH c.staff ORDER BY c.displayOrder ASC, c.id ASC")
     List<CourseEntity> findAllWithStaff();
+
+    @Query("SELECT c FROM CourseEntity c LEFT JOIN FETCH c.staff ORDER BY c.displayOrder ASC, c.id ASC")
+    List<CourseEntity> findAllWithStaffOrdered();
 
     @Query("SELECT c FROM CourseEntity c LEFT JOIN FETCH c.staff WHERE c.id = :id")
     Optional<CourseEntity> findByIdWithStaff(Long id);
 
     List<CourseEntity> findByStaff_Id(Long staffId);
+
+    Optional<CourseEntity> findFirstByOrderByDisplayOrderDescIdDesc();
+
+    List<CourseEntity> findAllByOrderByDisplayOrderAscIdAsc();
 }
