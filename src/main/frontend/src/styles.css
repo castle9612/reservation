@@ -577,6 +577,15 @@ p { line-height: 1.75; color: #6a5647; }
 
 .html-content { color: #6a5647; line-height: 1.85; }
 .html-content img { max-width: 100%; border-radius: 16px; margin: 12px 0; }
+.missing-image {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px dashed rgba(178, 77, 64, 0.38);
+  border-radius: 14px;
+  background: rgba(255, 245, 242, 0.86);
+  color: #9d4a3f;
+  font-weight: 700;
+}
 
 .form-panel {
   max-width: 860px;

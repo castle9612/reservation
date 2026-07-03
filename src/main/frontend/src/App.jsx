@@ -103,6 +103,27 @@ const kakaoMapTimestamp = import.meta.env.VITE_KAKAO_MAP_TIMESTAMP || '177630331
 const kakaoMapKey = import.meta.env.VITE_KAKAO_MAP_KEY || '2acjrw73oay7';
 const kakaoMapContainerId = `daumRoughmapContainer${kakaoMapTimestamp}`;
 
+function HtmlContent({ html }) {
+  function replaceMissingImage(event) {
+    const image = event.target;
+    if (image?.tagName !== 'IMG' || image.dataset.missingHandled === 'true') return;
+
+    image.dataset.missingHandled = 'true';
+    const message = document.createElement('div');
+    message.className = 'missing-image';
+    message.textContent = `${image.getAttribute('alt') || '본문 이미지'} 파일이 서버에 없어 표시할 수 없습니다. 공지 수정에서 이미지를 다시 업로드해 주세요.`;
+    image.replaceWith(message);
+  }
+
+  return (
+    <div
+      className="html-content"
+      onErrorCapture={replaceMissingImage}
+      dangerouslySetInnerHTML={{ __html: html || '<p>등록된 내용이 없습니다.</p>' }}
+    />
+  );
+}
+
 function App() {
   const brandLogoUrl = `${import.meta.env.BASE_URL}brand-logo.png`;
   const [brandLogoVisible, setBrandLogoVisible] = useState(true);
@@ -1399,7 +1420,7 @@ function App() {
                     <h3>{item.title}</h3>
                     <span>{formatDate(item.createdAt)}</span>
                   </div>
-                  <div className="html-content" dangerouslySetInnerHTML={{ __html: item.content || '<p>등록된 내용이 없습니다.</p>' }} />
+                  <HtmlContent html={item.content} />
                   {(item.attachmentPaths || []).length > 0 && (
                     <div className="attachment-links">
                       {(item.attachmentPaths || []).map((path, index) => (
@@ -2015,7 +2036,7 @@ function App() {
                       <h3>{announcement.title}</h3>
                       <span>{formatDate(announcement.createdAt)}</span>
                     </div>
-                    <div className="html-content" dangerouslySetInnerHTML={{ __html: announcement.content || '<p>등록된 내용이 없습니다.</p>' }} />
+                    <HtmlContent html={announcement.content} />
                     {(announcement.attachmentPaths || []).length > 0 && (
                       <div className="attachment-links">
                         {(announcement.attachmentPaths || []).map((path, index) => (
